@@ -1,0 +1,1930 @@
+%rm(list=ls());library("cacheSweave");setCacheDir("sweavecache");Sweave("Hiiragi2013.Rnw", driver=cacheSweaveDriver());system("pdflatex Hiiragi2013.tex")
+%\VignetteIndexEntry{Hiiragi2013}
+%\VignettePackage{Hiiragi2013}
+
+\documentclass[10pt,a4paper]{article}
+
+<<style, echo=FALSE, results=tex>>=
+BiocStyle::latex()
+@ 
+
+\RequirePackage[usenames,dvipsnames]{color}
+\RequirePackage{graphicx}
+\RequirePackage{natbib}
+\RequirePackage{enumitem}
+
+\RequirePackage{listings}
+\lstset{
+  basicstyle=\footnotesize\ttfamily,
+  numberstyle=\tiny,
+  numbersep=5pt,
+  tabsize=2,
+  extendedchars=true,
+  breaklines=true,
+  frame=b,
+  stringstyle=\color{Gray}\ttfamily,
+  showspaces=false,
+  showtabs=false,
+  xleftmargin=17pt,
+  framexleftmargin=17pt,
+  framexrightmargin=5pt,
+  framexbottommargin=4pt,
+  showstringspaces=false
+}
+
+\newcommand{\prefix}{\jobname}
+\newcommand{\myincfig}[4]{%
+  \begin{figure}[tbp]
+  \begin{center}
+  \includegraphics[width=#2]{\prefix-#1}
+  \caption[#3]{\label{#1}\textbf{#3} #4}
+  \end{center}
+  \end{figure}
+}
+\newcommand{\myincheatmap}[5]{%
+  \begin{figure}[tbp]
+  \begin{center}
+  \includegraphics[width=#2\textwidth]{\prefix-#1}
+  \caption[Heatmap of #3.]{\label{#1}\textbf{Heatmap of #3}. Data from #4 features with evidence of 
+    differential expression between the two clusters are shown. #5.}
+  \end{center}
+  \end{figure}
+}
+%%%%%%%%%%%%%%%%%%%
+
+\SweaveOpts{keep.source=TRUE,eps=FALSE,include=FALSE,prefix=TRUE}
+
+\begin{document}
+
+\title{{\Large Executable Analysis Document Supporting:}\\
+  \textbf{Cell-to-cell gene expression variability followed by reinforcement 
+  progressively segregates lineages in the early mouse embryo}\\
+  {\Large Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej Ole\'s, 
+    Marcos J.~Ara\'uzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis and Takashi Hiiragi}}
+
+\renewcommand{\thetitle}{Analysis report: Ohnishi et.~al., 2013} % short title used in headers
+\author{Authors of this document: Andrzej K.~Ole\'s, Wolfgang Huber}
+
+\maketitle
+\tableofcontents
+
+\newpage
+\listoffigures
+
+\newpage
+%--------------------------------------------------
+\section{Data import and preparations}
+%--------------------------------------------------
+We first load the required R packages.
+%
+<<packages, results=hide>>=
+library("Hiiragi2013")
+set.seed(2012)
+options(error=recover)
+@
+%
+The array data consist of a set of CEL files (the output from the Affymetrix scanner
+/ image analysis software), whose annotation is provided in an Excel table. The import of
+these data and metadata is performed by the script \texttt{readdata.R}, whose code is shown on
+page~\pageref{readdata} and following. This script also performs
+data preprocessing (``normalisation'') by the RMA
+method~\cite{IrizarryAffy} and arranges the metadata to support the
+analyses presented in the following. Let us load the result of
+\texttt{readdata.R}.
+%
+<<loadx>>=
+data("x")
+@
+%
+\texttt{x} is an \emph{\Sexpr{class(x)}} object that contains the
+normalized data for the \Sexpr{ncol(x)} arrays.
+<<showx>>=
+with(subset(pData(x), genotype=="WT"),
+     addmargins(table(Embryonic.day, Total.number.of.cells), 2))
+with(subset(pData(x), genotype=="FGF4-KO"),
+     table(Embryonic.day))
+@
+%
+%--------------------------------------------------
+\subsection{Metadata curation}
+%-------------------------------------------------- 
+We define a grouping of the samples and an associated colour map, 
+% as from Yusuke's email of 12.4.2013, 10:36h)
+which will be used in the plots in this report.
+%
+<<sampleColours1>>=
+groups = with(pData(x), list(
+ `E3.25`           = which(genotype=="WT" & Embryonic.day=="E3.25"),
+ `E3.5 (EPI)`      = which(genotype=="WT" & Embryonic.day=="E3.5" & lineage=="EPI"),
+ `E4.5 (EPI)`      = which(genotype=="WT" & Embryonic.day=="E4.5" & lineage=="EPI"),
+ `E3.5 (PE)`       = which(genotype=="WT" & Embryonic.day=="E3.5" & lineage=="PE"),
+ `E4.5 (PE)`       = which(genotype=="WT" & Embryonic.day=="E4.5" & lineage=="PE"),
+ `E3.25 (FGF4-KO)` = which(genotype=="FGF4-KO" & Embryonic.day=="E3.25"),
+ `E3.5 (FGF4-KO)`  = which(genotype=="FGF4-KO" & Embryonic.day=="E3.5"),
+ `E4.5 (FGF4-KO)`  = which(genotype=="FGF4-KO" & Embryonic.day=="E4.5")))
+
+sampleColourMap = character(length(groups))
+names(sampleColourMap) = names(groups)
+sampleColourMap[c("E3.5 (EPI)", "E4.5 (EPI)")] = brewer.pal(10, "Paired")[1:2]
+sampleColourMap[c("E3.5 (PE)", "E4.5 (PE)")] = brewer.pal(10, "Paired")[3:4]
+sampleColourMap[c("E3.25 (FGF4-KO)")] = brewer.pal(10, "Paired")[c(7)]
+sampleColourMap[c("E3.5 (FGF4-KO)", "E4.5 (FGF4-KO)")] = brewer.pal(10, "Paired")[c(8,6)]
+sampleColourMap[c("E3.25")] = brewer.pal(12, "Paired")[c(9)]
+stopifnot(!any(sampleColourMap==""))
+@
+The following assertions aim to make sure that each sample was assigned to exactly one group.
+<<sampleColours2>>=
+stopifnot(!any(duplicated(unlist(groups))),
+          setequal(unlist(groups), seq_len(ncol(x))),
+          setequal(names(sampleColourMap), names(groups)))
+@
+Statistics:
+<<grpstat>>=
+sapply(groups, length)
+@
+%
+Assign a colour and a name to each sample, which will be used in the subsequent plots.
+For sample names, use the group name and the array numeric index.
+%
+<<sampleColours3>>=
+sampleNames = sampleGroup = rep(NA_character_, ncol(x))
+for(i in seq(along=groups)) {
+  idx = groups[[i]]
+  sampleGroup[idx] = names(groups)[i]
+  sampleNames[idx] = paste(idx, names(groups)[i])
+}
+pData(x)$sampleGroup  = sampleGroup
+pData(x)$sampleColour = sampleColourMap[sampleGroup]
+sampleNames(x) = sampleNames
+@
+%
+For some analyses, we need to specifically address the four probes mapping to FGF4.
+<<FGF4probes>>=
+FGF4probes = (fData(x)$symbol == "Fgf4")
+stopifnot(sum(FGF4probes)==4)
+@ 
+
+
+%--------------------------------------------------
+\clearpage
+\section{How many genes are expressed?}
+%--------------------------------------------------
+In this section, we aim to determine how many distinct mRNAs were detected by the arrays
+over the background level in the 66 WT samples.
+%
+<<expressed1,cache=TRUE>>=
+selectedSamples = with(pData(x), genotype=="WT") 
+xe = x[, selectedSamples]
+stopifnot(ncol(xe)==66)
+@ 
+%
+Because of the presence of background signal (stray light, cross-hybridisation), the
+answer to the question whether a transcript is present in a sample, based on Affymetrix
+GeneChip data, is not straightforward. In addition, the problem is complicated by the fact
+that the background signal is probe-sequence dependent. We perform two approaches that are
+used in the literature.
+
+%----------------------------------------------------------
+\subsection{By variability}
+%----------------------------------------------------------
+The first approach is based on the notion that the existence of \emph{variability} of
+signal across samples is a more specific indicator of a transcripts presence, than the
+absolute signal intensity~\cite{Bourgon:2010:PNAS}. Let us plot the histogram of the
+standard deviation of each probe set's signal, across the \Sexpr{ncol(xe)} samples
+(Figure~\ref{figHistSds}).
+%
+<<figHistSds,fig=TRUE,width=6,height=4>>=
+sdxe = rowSds(exprs(xe))
+thresh = 0.5
+hist(sdxe, 100, col="skyblue")
+abline(v=thresh)
+@ 
+%
+\myincfig{figHistSds}{0.5\textwidth}{Histogram of
+standard deviation of each probe set's signal}{across the \Sexpr{ncol(xe)} samples.}
+Based on the (visually) chosen threshold\footnote{One could also come up with a more
+  automated, ``statistical'' rule, but the downstream result would be very similar.} \Robject{thresh},
+we find the following numbers of probe sets and unique target gene identifiers.
+<<anaHistSds>>=
+table(sdxe>=thresh)
+length(unique(fData(xe)$ensembl[ sdxe>=thresh ]))
+@ 
+
+%----------------------------------------------------------
+\subsection{By Affymetrix present/absent calls}
+%----------------------------------------------------------
+The second approach uses the Wilcoxon signed rank-based gene expression presence/absence
+detection algorithm first implemented in the Affymetrix Microarray Suite version 5.
+%
+<<mas5calls,cache=TRUE,results=hide>>=
+data("a")
+stopifnot(nrow(pData(a))==ncol(x))
+mas5c = mas5calls(a[, selectedSamples])
+@
+%
+Some bookkeeping and shuffling around is needed to compute the number of genes --as defined by
+unique Ensembl identifiers-- for the classes \emph{present} (P), \emph{marginal} (M) and
+\emph{absent} (A). If multiple probe sets map to one gene (which happens frequently on this array
+type), then P trumps M trumps A.
+%
+<<numCalls1,cache=TRUE>>=
+myUnique = function(x) setdiff(unique(x), "")
+allEnsemblIDs = myUnique(fData(xe)$ensembl)
+
+callsPerGenePerArray = matrix(0, nrow=length(allEnsemblIDs), ncol=ncol(mas5c)+1,
+  dimnames=list(allEnsemblIDs, NULL))
+
+for(j in seq_len(ncol(mas5c))) {
+  for(k in 1:2) {
+    ids = myUnique(fData(xe)$ensembl[ exprs(mas5c)[,j]==c("M","P")[k] ])
+    callsPerGenePerArray[ids, j] = k
+  }
+}
+ 
+fractionOfArrays = 0.1
+for(k in 1:2) {
+  ids = myUnique(fData(xe)$ensembl[ apply(exprs(mas5c)==c("M","P")[k], 1, 
+      function(v) (mean(v)>fractionOfArrays)) ])
+  callsPerGenePerArray[ids, ncol(mas5c)+1] = k
+}
+
+numCalls = apply(callsPerGenePerArray, 2, table)
+numCalls = numCalls[rev(seq_len(nrow(numCalls))), ]
+<<numCalls2>>=
+numCalls[,67]
+<<figmas5calls,fig=TRUE,width=12,height=5>>=
+barplot2(numCalls, names.arg=paste(seq_len(ncol(callsPerGenePerArray))),
+         col=c(brewer.pal(8, "Paired")[2:1], "#e8e8e8"), ylab="number of genes")
+@ 
+%
+See Figure~\ref{figmas5calls}.
+\myincfig{figmas5calls}{\textwidth}{Present/absent calls.}{The barplot shows, for each of the
+  \Sexpr{ncol(mas5c)} arrays, the number of genes targeted by probe sets with "A" (light
+  grey), "M" (light blue) and "P" (blue) calls. 
+  The \Sexpr{ncol(mas5c)+1}-th bar at the very right corresponds to detection in at least
+  \Sexpr{fractionOfArrays*100}\% of arrays.}
+
+
+%----------------------------------------------------------
+\clearpage
+\section{Cluster stability analysis}
+\subsection{E3.25 and E3.5 WT samples}\label{sec:cluewt}
+%-----------------------------------------------------------
+In this section, we investigate the hypothesis that the data for E3.5 fall
+'naturally' into two clusters (associated with PE and EPI), while the data for E3.25 do not.
+For this, we use the framework of the \Rpackage{clue}
+package~\cite{clue}. Briefly, the below function
+\Rfunction{clusterResampling} performs the following steps:
+\begin{enumerate}
+\item \label{clue1} Draw a random subset of the full data (the full data are either
+  all E3.25 or all E3.5 samples) by selecting 67\% of the
+  samples.
+\item Select the top \Robject{ngenes} (see below) features by overall variance
+  (in the subset).
+\item \label{clue2} Apply $k$-means clustering, and predict the
+  cluster memberships of the samples that were not in the subset with the
+  \Rfunction{cl\_predict} method, through their proximity to the
+  cluster centres.
+\item Repeat steps \ref{clue1}-\ref{clue2} for \Robject{B}=250 times.
+\item Apply consensus clustering (\Rfunction{cl\_consensus}).
+\item \label{clueagree} For each of the \Robject{B}=250 clusterings, measure
+  the agreement with the consensus (\Rfunction{cl\_agreement}); here,
+  good agreement is indicated by a value of 1, and less agreement by
+  smaller values. If the agreement is generally high, then the clustering into $k$ classes
+  can be considered stable and reproducible; inversely, if it is low, then no stable
+  partition of the samples into $k$ clusters is evident. 
+\end{enumerate}
+
+As a measure of between-cluster distance for the consensus clustering,
+the \emph{Euclidean} dissimilarity of the memberships is used, i.\,e.,
+the square root of the minimal sum of the squared differences of $u$
+and all column permutations of $v$, where $u$ and $v$ are the cluster membership matrices.
+As agreement measure for step~\ref{clueagree}, the quantity $1 - d /
+m$ is used, where $d$ is the Euclidean dissimilarity,
+and $m$ is an upper bound for the maximal Euclidean dissimilarity~\cite{Dimitriadou:2002}.
+%
+<<clusterResampling>>=
+clusterResampling = function(x, ngenes, k = 2, B = 250, prob = 0.67) {
+  mat = exprs(x)
+  ce = cl_ensemble(list=lapply(seq_len(B), function(b) {
+    selSamps = sample(ncol(mat), size=round(prob*ncol(mat)), replace=FALSE)
+    submat = mat[, selSamps, drop=FALSE]
+    selFeats = order(rowVars(submat), decreasing = TRUE)[seq_len(ngenes)]
+    submat = submat[selFeats,, drop=FALSE]
+    pamres = pam(t(submat), k = k)
+    pred = cl_predict(pamres, t(mat[selFeats,]), "memberships")
+    as.cl_partition(pred)
+  }))
+  cons = cl_consensus(ce)
+  ag = sapply(ce, cl_agreement, y=cons)
+  return(list(agreements=ag, consensus=cons))
+}
+@
+
+<<ce1,cache=TRUE>>=
+ce = list(
+  "E3.25" = clusterResampling(x[, unlist(groups[c("E3.25")])], ngenes=20),
+  "E3.5" = clusterResampling(x[, unlist(groups[c("E3.5 (EPI)", "E3.5 (PE)")])], ngenes=20))
+@
+%
+The results are shown in Figure~\ref{figClue1}. They confirm the hypothesis stated at
+the beginning of this section.
+%
+<<figClue1,fig=TRUE,width=9,height=5>>=
+par(mfrow=c(1,2))
+colours  = c(sampleColourMap["E3.25"], brewer.pal(9,"Set1")[9])
+
+boxplot(lapply(ce, `[[`, "agreements"), ylab="agreements", col=colours)
+
+mems = lapply(ce, function(x) sort(cl_membership(x$consensus)[,1]))
+mgrp = lapply(seq(along=mems), function(i) rep(i, times=length(mems[[i]])))
+myjitter = function(x) x+seq(-.4, +.4, length.out=length(x))
+
+plot(unlist(lapply(mgrp, myjitter)), unlist(mems),
+     col=colours[unlist(mgrp)], ylab="membership probabilities",
+     xlab="consensus clustering", xaxt="n", pch=16)
+text(x=1:2, y=par("usr")[3], labels=c("E3.25","E3.5"), adj=c(0.5, 1.4), xpd=NA)
+@
+%
+\myincfig{figClue1}{\textwidth}{Cluster stability analysis.}{Left:
+  boxplot of the cluster agreements  with the consensus, for the
+  \Robject{B}=\Sexpr{formals(clusterResampling)$B}
+  clusterings; 1 indicates perfect agreement, and
+  the value decreases with worse agreement. The statistical significance of the difference
+  is confirmed by a Wilcoxon test in the main text. Right: membership
+  probabilities of the consensus clustering; colours are as in the left panel.
+  For E3.25, the probabilities are diffuse, indicating that the individual
+  (resampled) clusterings disagree a lot, whereas for E3.5, the
+  distribution is bimodal, with only one ambiguous sample.}
+
+We can compute a $p$ value for the statistical significance of the two distributions shown
+in the boxplot of Figure~\ref{figClue1}.
+<<test>>=
+wilcox.test(ce$E3.25$agreements, ce$E3.5$agreements)
+@
+
+%-----------------------------------------------------------
+\subsection{E3.5 / E4.5 WT and E4.5 FGF4-KO samples}\label{sec:clueko}
+%-----------------------------------------------------------
+From the PCA plot in Figure~\ref{figmds-2}, one might derive the impression that the FGF4
+KO E4.5 cells cluster together with the EPI E3.5 cells.  Here, we perform a cluster
+stability analysis analogous to that in Section~\ref{sec:cluewt}, using the FGF4-KO E4.5
+cells together with 
+\begin{enumerate}
+  \item the WT EPI E3.5 and WT PE E3.5 cells,
+  \item the WT EPI 4.5 and WT PE 4.5 cells.
+\end{enumerate}
+As we will see in the following, in each of the above cases, three distinct clusters
+exist, and the above mentioned impression is not substantiated; in addition, we can also
+clearly distinguish the WT and KO samples at E4.5.
+%
+<<ce2,cache=TRUE>>=
+sampleSets= list(
+  `E3.5` = unlist(groups[c("E3.5 (EPI)", "E3.5 (PE)", "E4.5 (FGF4-KO)")]),
+  `E4.5` = unlist(groups[c("E4.5 (EPI)", "E4.5 (PE)", "E4.5 (FGF4-KO)")]))
+k  = 3
+csa = lapply(sampleSets, function(samps) list(
+  colours = x$sampleColour[samps], 
+  r = clusterResampling(x[!FGF4probes, samps], ngenes=20, k=k)
+))
+<<figClue2,fig=TRUE,width=8,height=6>>=
+par(mfrow=c(2,3))
+for(i in seq(along=csa))
+  for(j in seq_len(k))
+    plot(cl_membership(csa[[i]]$r$consensus)[,j], 
+     ylab=paste0("P(cluster ", j, ")"), xlab="Samples",
+     main=names(sampleSets)[i], col=csa[[i]]$colours, pch=16, cex=1.5)
+@ 
+%
+\myincfig{figClue2}{\textwidth}{Cluster stability analysis with WT and FGF4-KO samples.}{Top 
+  row: Results of the cluster stability analysis with the E3.5 (EPI), E3.5 (PE), E4.5
+  (FGF4-KO) samples. Shown on the $y$-axis is the membership probability 
+  in the three clusters. The actual group
+  membership of the samples (known to us but not used by the clustering algorithm) is indicated by the
+  colours. Bottom row: Similarly for E4.5 (EPI), E4.5 (PE), E4.5 (FGF4-KO). These analyses indicate that the FGF4-KO
+  very clearly separate from the WT samples, which between themselves tend to form the 
+  clusters already described in Section~\ref{sec:cluewt}.}
+%
+The results of the above code are shown in Figure~\ref{figClue2} and indicate that
+indeed FGF4-KO E4.5 cells are distinct from either of the WT groups.
+
+%----------------------------------------------------------
+\clearpage
+\section{Lineage Markers}
+\label{sec:unsuper}
+%-----------------------------------------------------------
+
+In this section, the following steps are performed:
+\begin{enumerate}
+\item Section~\ref{sec:cluster}: Cluster the arrays from E3.5 into two clusters (using $k$-means
+  clustering with $k=2$ on the overall expression profiles).
+\item Section~\ref{sec:deCluster}: Determine the genes that are differentially expressed between
+  these two clusters, according to a $t$-test with a nominal cutoff of
+  false discovery rate (FDR) of 10\%.  These genes are reported in the
+  table \texttt{differentially-expressed-features-3.5.csv}, which can be
+  imported into Excel etc.
+\item Section~\ref{sec:deHeatmaps}: Present a heatmap of these genes.
+\item Section~\ref{sec:de45}: Produce an analogous table \texttt{differentially-expressed-features-4.5.csv} for
+  the E4.5 samples.
+\end{enumerate}
+
+%-----------------------------------------------------------------
+\subsection{Clustering}\label{sec:cluster}
+%-----------------------------------------------------------------
+The function \Rfunction{pamCluster}
+selects the \Robject{ngenes} most variable genes in
+the data matrix \Robject{x} and seeks for two clusters using the
+\emph{partitioning around medoids} method.
+To control the influence of the parameter \Robject{ngenes}, we call the
+algorithm for multiple choices, from 10 to 10000.
+<<doCluster>>=
+ngenes = c(10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000)
+<<cluster, cache=TRUE>>=
+xForClustering = x[, x$Embryonic.day=="E3.5" & x$genotype=="WT"]
+clusters = sapply(ngenes, pamCluster, x = xForClustering)
+@
+The result is displayed in Figure~\ref{figClusters}.
+%
+<<figClusters, fig=TRUE, width=5, height=5>>=
+image(x=seq_len(nrow(clusters)),
+      y=seq_len(ncol(clusters)),
+      z=clusters,
+      col=c("#f0f0f0", "#000000"),
+      ylab="ngenes", xlab="samples", yaxt="n")
+text(x=0, y=seq_len(ncol(clusters)), paste(ngenes), xpd=NA, adj=c(1, 0.5))
+@
+%
+\myincfig{figClusters}{0.5\textwidth}{The influence of the
+  parameter \Robject{ngenes} on the clustering result.}{Each of the 22
+  samples corresponds to a column of the matrix, the rows of the
+  matrix correspond to different choices for
+  \Robject{ngenes}. Cluster membership is indicated by the colour code
+  (light gray \emph{vs} black). For most samples, cluster membership
+  is consistent throughout the range of \Robject{ngenes} from 10 to 1000.
+  \Robject{ngenes}=1000 is used for subsequent analyses.}
+%
+From Figure~\ref{figClusters} we can conclude that we can proceed
+with the choice of
+%
+<<choosengenes>>=
+i = which(ngenes==1000); stopifnot(length(i)==1)
+ngenes = ngenes[i]
+clusters = factor(clusters[,i])
+@
+We can check how the microarray-data driven clustering compares with
+the annotation of the cells that was provided by Yusuke in the Excel table:
+<<compareClusteringAnnotation>>=
+table(clusters, pData(x)[names(clusters), "lineage"])
+@
+<<compareClusteringAnnotationCheck,echo=FALSE,results=hide>>=
+stopifnot(all(
+ table(clusters, pData(x)[names(clusters), "lineage"]) == cbind(c(0,11),c(11,0))
+))
+@
+%
+We can see that the clustering perfectly agrees with Yusuke's labeling. \emph{Note}: the
+\texttt{lineage} annotation was used here only to assess the clustering output.
+It is not used as input for any of the data analyses shown in this document.
+%
+<<print>>=
+cbind(unlist(groups[c("E3.5 (EPI)", "E3.5 (PE)")]), ce[[2]]$consensus$.Data[,1])
+@
+
+%-----------------------------------------------------------------
+\subsection{Differentially expressed genes E3.5}
+\label{sec:deCluster}
+%-----------------------------------------------------------------
+<<deBetweenClusters>>=
+deCluster = rowttests(xForClustering, fac = clusters)
+@
+%
+The code below, which produces Figure~\ref{figIndepFiltSetup},
+is used to set the parameters for the independent filtering step~\cite{Bourgon:2010:PNAS}.
+%
+<<figIndepFiltSetup, fig=TRUE, pdf=FALSE, png=TRUE, width=4.5, height=4.5>>=
+varianceRank = rank(-rowVars(exprs(xForClustering)))
+plot(varianceRank, deCluster$p.value, pch=".", log="y",
+     main="Parameters for the independent filtering")
+nFilt=20000
+smallpValue=1e-4
+abline(v=nFilt, col="blue")
+abline(h=smallpValue, col="orange")
+@
+\myincfig{figIndepFiltSetup}{0.5\textwidth}{Determination of the cutoff for independent
+  filtering.}{Each dot corresponds to one of the \Sexpr{nrow(xForClustering)} features on the array, the $x$-axis
+  shows the rank of the features overall variance across the  \Sexpr{ncol(xForClustering)} arrays in
+  \Robject{xForClustering}, the $y$-axis the $p$-value from the $t$-test on a logarithmic scale.
+  The horizontal orange line corresponds to a $p$-value of \Sexpr{smallpValue}.
+  The vertical blue line indicates the cutoff implied by taking only the \Sexpr{nFilt} features with the highest
+  overall variance. We can see that if we apply this cutoff, we in fact do not miss any of the features with
+  $p$-value smaller than \Sexpr{smallpValue}.}
+<<checkFilterClaim,echo=FALSE,results=hide>>=
+stopifnot(!any((deCluster$p.value<smallpValue)&(varianceRank>nFilt)))
+@
+%
+Let's perform false discovery rate (FDR) $p$-value adjustment using the
+Benjamini-Hochberg method~\cite{BH:1995}.
+<<BH>>=
+passfilter = which(varianceRank<=nFilt)
+adjp = rep(NA_real_, nrow(x))
+adjp[passfilter] = p.adjust(deCluster$p.value[passfilter], method="BH")
+ord = order(adjp)
+# FDRcutoff = 0.1
+# differentially = ord[ adjp[ord]<=FDRcutoff & !is.na(adjp[ord]) ]
+# length(differentially)
+numFeaturesReport = 200
+differentially = ord[seq_len(numFeaturesReport)]
+length(unique(fData(x)$symbol[differentially]))
+@
+% We identify \Sexpr{length(differentially)} features at an FDR of 10\%,
+The FDR of the selected set of \Robject{numFeaturesReport}=\Sexpr{numFeaturesReport} features
+is \Sexpr{signif( adjp[tail(differentially,1)]*100, 3)}\%,
+and these correspond to \Sexpr{length(unique(fData(x)$symbol[differentially]))} unique genes.
+In the following code chunk, we write out a CSV file with the results table.
+%
+<<write.csv>>=
+deFeat35 = cbind(deCluster[differentially, ], `FDR-adjusted p value`=adjp[differentially], 
+                 fData(x)[differentially, ])
+write.csv(deFeat35, file="differentially-expressed-features-3.5.csv")
+@
+
+%-----------------------------------------------------------------
+\subsubsection{Heatmaps}\label{sec:deHeatmaps}
+%-----------------------------------------------------------------
+To visualise the data, we use the helper function
+\Rfunction{myHeatmap}.
+The heatmaps produced by the function calls below are shown in
+Figures~\ref{figHeatmapAll}--\ref{figHeatmap35Coll}.
+%
+<<figHeatmapAll, fig=TRUE, width=13, height=14>>=
+myHeatmap(x[differentially, x$genotype=="WT"])
+<<figHeatmapAllColl, fig=TRUE, width=13, height=12>>=
+myHeatmap(x[differentially, x$genotype=="WT"], collapseDuplicateFeatures=TRUE)
+<<figHeatmap35, fig=TRUE, width=7, height=14>>=
+myHeatmap(xForClustering[differentially,])
+<<figHeatmap35Coll, fig=TRUE, width=7, height=12>>=
+myHeatmap(xForClustering[differentially,], collapseDuplicateFeatures=TRUE)
+@
+
+\myincheatmap{figHeatmapAll}{1}{all WT arrays}{\Sexpr{length(differentially)}}{For some genes, multiple features are shown}
+\myincheatmap{figHeatmapAllColl}{1}{all WT arrays}{\Sexpr{length(differentially)}}{Duplicate features per gene were averaged}
+\myincheatmap{figHeatmap35}{0.7}{only the WT arrays from E3.5}{\Sexpr{length(differentially)}}{For some genes, multiple features are shown}
+\myincheatmap{figHeatmap35Coll}{0.7}{only the WT arrays from E3.5}{\Sexpr{length(differentially)}}{Duplicate features per gene were averaged}
+
+%-----------------------------------------------------------------
+\subsection{Differentially expressed genes E4.5}
+\label{sec:de45}
+%-----------------------------------------------------------------
+Following code is analogous to Section~\ref{sec:deCluster}.
+<<de45>>=
+x45 = x[, x$Embryonic.day=="E4.5" & x$genotype=="WT"]
+de45 = rowttests(x45, fac = "lineage")
+<<figIF45, fig=TRUE, pdf=FALSE, png=TRUE, width=4.5, height=4.5>>=
+varianceRank = rank(-rowVars(exprs(x45)))
+plot(varianceRank, de45$p.value, pch=".", log="y",
+     main="Parameters for the independent filtering")
+abline(v=nFilt, col="blue")
+abline(h=smallpValue, col="orange")
+@
+See Figure~\ref{figIF45}.
+\myincfig{figIF45}{0.5\textwidth}{Determination of the cutoff for independent
+  filtering.}{Analogous to Figure~\ref{figIndepFiltSetup}, but for E4.5.}
+<<BH45>>=
+passfilter = which(varianceRank<=nFilt)
+adjp = rep(NA_real_, nrow(x))
+adjp[passfilter] = p.adjust(de45$p.value[passfilter], method="BH")
+ord = order(adjp)
+# differentially = ord[ adjp[ord]<=FDRcutoff & !is.na(adjp[ord]) ]
+# length(differentially)
+differentially = ord[seq_len(numFeaturesReport)]
+length(unique(fData(x)$symbol[differentially]))
+@
+% We identify \Sexpr{length(differentially)} features at an FDR of 10\%,
+The FDR of the selected set of \Robject{numFeaturesReport}=\Sexpr{numFeaturesReport} features
+is \Sexpr{signif( adjp[tail(differentially,1)]*100, 3)}\%,
+and these correspond to \Sexpr{length(unique(fData(x)$symbol[differentially]))} unique genes.
+In the following code chunk, we write out a CSV file with the results table.
+%
+<<write.csv>>=
+deFeat45 = cbind(de45[differentially, ], `FDR-adjusted p value`=adjp[differentially], 
+                 fData(x)[differentially, ])
+write.csv(deFeat45, file="differentially-expressed-features-4.5.csv")
+@
+
+
+%--------------------------------------------------
+\clearpage
+\section{Differentially expressed genes from E3.25 to E3.5}
+\label{sec:E325toE35}
+%--------------------------------------------------
+To understand the transitions shown in the MDS plots in
+molecular terms, a look at the genes that are differentially expressed
+along the transitions from E3.25 to E3.5 (EPI) and from E3.25 to E3.5
+(PE) might be instructive. To this end, we
+determine the differentially expressed genes for each of the two
+comparisons, build the union set and display their data in the
+heatmap Figure~\ref{figdifferentiallyE325toE35}.
+It is interesting that some genes are specifying for either EPI or PE,
+whereas other genes show the same trend from E3.25 to E3.5 for both
+lineages (i.\,e.\ they only reflect time).
+%
+<<differentiallyE325toE35>>=
+samples = unlist(groups[c("E3.25", "E3.5 (EPI)", "E3.5 (PE)")])
+deE325toE35 = union(
+  getDifferentialExpressedGenes(x, groups, "E3.25", "E3.5 (EPI)"),
+  getDifferentialExpressedGenes(x, groups, "E3.25", "E3.5 (PE)"))
+<<figdifferentiallyE325toE35, width=8, height=25, fig=TRUE>>=
+myHeatmap(x[deE325toE35, samples], collapseDuplicateFeatures=TRUE)
+@
+%
+\myincfig{figdifferentiallyE325toE35}{7.5cm}{Heatmap of
+  differentially expressed genes from E3.25 to E3.5 (EPI), and from
+  E3.25 to E3.5 (PE).}{A
+  standalone PDF file with this figure is also available, under the name
+  \texttt{Hiiragi2013-figdifferentiallyE325toE35.pdf}.}
+
+%-----------------------------------------------------------------
+\clearpage
+\section{Principal Component Analysis}
+\label{sec:E325}
+%-----------------------------------------------------------------
+As a first attempt at getting an overview over the data, see Figure~\ref{figProjection}.
+%
+<<E325samples>>=
+projection = deCluster$dm[differentially] %*% exprs(x)[differentially, ]
+<<figProjection, fig=TRUE, width=7, height=15>>=
+plotProjection(projection,
+    label = sampleNames(x),
+    col = x$sampleColour,
+    colourMap = sampleColourMap)
+@
+%
+\myincfig{figProjection}{8cm}{Projection of sample expression profiles on
+the differential expression signature from Section~\ref{sec:unsuper}.}{Expression
+profiles and signature are each vectors of length \Sexpr{length(differentially)},
+and shown is the scalar product between each sample's expression profile for
+these \Sexpr{length(differentially)} features and the differential expression signature.}
+
+%--------------------------------------------------------------
+\subsection{On the WT samples}\label{sec:mdswt}
+%--------------------------------------------------------------
+Select the WT samples.
+<<safeSelect-1>>=
+safeSelect = function(grpnames){
+   stopifnot(all(grpnames %in% names(groups)))
+   unlist(groups[grpnames])
+}
+g = safeSelect(c("E3.25",
+                 "E3.5 (EPI)", "E3.5 (PE)",
+                 "E4.5 (EPI)", "E4.5 (PE)"))
+@
+%
+Note: we do not use the data from all the \Sexpr{nrow(x)} features on the microarrays,
+since most of these are dominated by noise. Rather, we use the top 100 features according
+to overall variance across the WT samples, excluding, however, the FGF4 probes (to avoid
+any possible concerns about ``trivial'' effects of the KOs).
+%
+<<varianceOrder,cache=TRUE>>=
+nfeatures = c(10, 50, 100, 1000)
+varianceOrder = order(rowVars(exprs(x[, g])), decreasing=TRUE)
+varianceOrder = setdiff(varianceOrder, which(FGF4probes))
+i=3
+selectedFeatures = varianceOrder[seq_len(nfeatures[i])]
+xwt = x[selectedFeatures, g]
+@
+Before embarking on the PCA computation, construct a new data matrix with equal group sizes.
+<<doPCA1,cache=TRUE>>=
+tab = table(xwt$sampleGroup)
+sp = split(seq_len(ncol(xwt)), xwt$sampleGroup)
+siz = max(listLen(sp))
+sp = lapply(sp, sample, size=siz, replace=(siz>length(x)))
+xwte = xwt[, unlist(sp)]
+@
+Now we are ready to do it.
+<<doPCA2,cache=TRUE>>=
+thepca = prcomp(t(exprs(xwte)), center=TRUE)
+pcatrsf = function(x) (scale(t(exprs(x)), center=TRUE, scale=FALSE)  %*% thepca$rotation)
+stopifnot(all( abs(pcatrsf(xwte) - thepca$x) < 1e-6 ))
+<<myPCA>>=
+myPCAplot = function(x, labels, ...) {
+  xy = pcatrsf(x)[,1:2]
+  plot(xy, pch = 16, col=x$sampleColour, cex=1, xlab = "PC1", ylab = "PC2", ...)
+  if(!missing(labels))
+    text(xy, labels, cex=0.35, adj=c(0.5, 0.5))
+}
+<<figmds-1, fig=TRUE, width=5, height=5, results=hide>>=
+myPCAplot(xwt)
+@
+%
+See Figure~\ref{figmds-1}. We also provide an overview over the distributions of
+loadings of the PCA components (Figure~\ref{figpcaloadings}) and the 20 most
+important genes (10 with highest positive coefficients and 10 with the highest negative
+coefficients) in the R output below.
+%
+\myincfig{figmds-1}{.6\textwidth}{PCA plot, using WT samples.}{The colour code is as in
+  Figure~\ref{figProjection}.}
+\myincfig{figpcaloadings}{\textwidth}{Sorted loadings (coefficients) of the first two
+  PCA vectors.}{The most important genes are shown in the text.}
+%
+<<figpcaloadings,fig=TRUE, width=8, height=4>>=
+par(mfrow=c(1,2))
+for(v in c("PC1", "PC2")) {
+  loading = thepca$rotation[,v]
+  plot(sort(loading), main=v, ylab="")
+  sel = order(loading)[c(1:10, (-9:0)+length(loading))]
+  print(data.frame(
+   symbol=fData(x)$symbol[selectedFeatures[sel]],
+   probe=names(loading)[sel],
+   loading=loading[sel], stringsAsFactors=FALSE
+  ))
+}
+@
+%
+
+
+
+%--------------------------------------------------------------
+\subsection{WT and FGF4-KO}\label{sec:mdsko}
+%--------------------------------------------------------------
+<<safeSelect-2>>=
+g = safeSelect(c("E3.25",
+                 "E3.5 (EPI)", "E3.5 (PE)",
+                 "E4.5 (EPI)", "E4.5 (PE)",
+                 "E3.25 (FGF4-KO)", "E3.5 (FGF4-KO)", "E4.5 (FGF4-KO)"))
+<<figmds-2, fig=TRUE, width=5, height=5, results=hide>>=
+myPCAplot(x[selectedFeatures, ])
+@
+See Figure~\ref{figmds-2}.
+\myincfig{figmds-2}{.6\textwidth}{PCA
+  plot for WT and FGF4-KO samples.}{The
+  colour code is as in Figure~\ref{figProjection}.}
+%
+<<figmds-3, fig=TRUE, width=5, height=5, results=hide>>=
+myPCAplot(x[selectedFeatures, ], labels=paste(seq_len(ncol(x))))
+@
+See Figure~\ref{figmds-3}.
+\myincfig{figmds-3}{\textwidth}{Same as Figure~\ref{figmds-2}, with labels
+  indicating the array (sample) number.}{This may be useful to detect outlier arrays.}
+%
+<<figmds-4, fig=TRUE, width=5, height=5, results=hide>>=
+myPCAplot(x[selectedFeatures, ], labels=paste(x$Total.number.of.cells))
+@
+See Figure~\ref{figmds-4}.
+\myincfig{figmds-4}{\textwidth}{Same as Figure~\ref{figmds-2}, with labels
+  indicating \Robject{Total.number.of.cells}.}{This may be useful to detect ``batch effects''.}
+
+%--------------------------------------------------------------
+\subsection{Heatmap (WT and FGF4-KO)}
+%--------------------------------------------------------------
+<<hmprep>>=
+mat = exprs(x[selectedFeatures, ])
+rownames(mat) = fData(x)[selectedFeatures, "symbol"]
+<<fighmko,width=14,height=17,fig=TRUE>>=
+heatmap.2(mat, trace="none", dendrogram="none", scale="row",
+          col=bluered(100),keysize=0.9,
+          ColSideColors=x$sampleColour[g], margins=c(5,7))
+@
+
+See Figure~\ref{fighmko}.
+\myincfig{fighmko}{\textwidth}{Heatmap.}{The
+  colour code of the bar at the top is as in Figure~\ref{figProjection}.}
+
+%----------------------------------------------------------------
+\clearpage
+\section{Further analyses of FGF4-KO}\label{sec:fg4ko}
+%----------------------------------------------------------------
+\subsection{FGF4's expression pattern (E3.25)}\label{sec:fgf4:exprpat}
+%----------------------------------------------------------------
+In Figure~\ref{figFGF4expression}, produced by the code below, we
+visualise the expression pattern of FGF4 in the E3.25 samples. The
+striking result is that there is a lot of natural variation in FGF4
+expression even in the WT samples, and some of the lowest levels in
+the WT samples approach the background signal level seen for the KOs.
+%
+<<FGF4expression>>=
+x325  = x[, with(pData(x), Embryonic.day=="E3.25")]
+rv325 = rowVars(exprs(x325))
+featureColours = brewer.pal(sum(FGF4probes), "Dark2")
+<<figFGF4expression, fig=TRUE, width=10, height=5>>=
+py = t(exprs(x325)[FGF4probes,])
+matplot(py, type="p", pch=15, col=featureColours,
+        xlab="arrays", ylab=expression(log[2]~signal),
+        ylim=range(py)+c(-0.7, 0))
+legend("topright", legend=rownames(fData(x325))[FGF4probes],
+       fill=featureColours)
+points(seq_len(nrow(py)), rep(par("usr")[3]+0.2, nrow(py)),
+       pch=16, col=x325$sampleColour)
+@
+%
+\myincfig{figFGF4expression}{\textwidth}{FGF4 expression.}{The
+  plot shows data from the
+  \Sexpr{sum(FGF4probes)} features on the microarray annotated to
+  FGF4. From these data, we conclude that \texttt{1420085\_at} and
+  \texttt{1420086\_x\_at} essentially report the same, and are likely
+  to be good reporters for the FGF4 isoform that we are interested in,
+  whereas the other two features measure something else. The circle symbols
+  at the bottom of the plot indicate the samples' genotypes.}
+%
+<<checkClaim1, echo=FALSE>>=
+stopifnot(all(c("1420085_at", "1420086_x_at") %in%  rownames(fData(x325))[FGF4probes]),
+          all(x325$genotype[1:36]=="WT"),
+          all(x325$genotype[37:44]=="FGF4-KO"))
+@
+%
+For presentation, I also produce another visualisation, this time only
+showing one value per array, which I obtain by averaging over the two
+"good" features (Figure~\ref{figFGF4jitter}).
+%
+<<FGF4expression2>>=
+fgf4Expression = colMeans(exprs(x325)[c("1420085_at", "1420086_x_at"), ])
+fgf4Genotype = factor(x325$genotype, levels=sort(unique(x325$genotype), decreasing=TRUE))
+@
+<<figFGF4jitter, fig=TRUE, width=5, height=4.5>>=
+plot(x = jitter(as.integer(fgf4Genotype)),
+     y = fgf4Expression,
+     col = x325$sampleColour, xlim=c(0.5, 2.5), pch=16,
+     ylab = expression(FGF4~expression~(log[2]~units)),
+     xlab = "genotype", xaxt="n")
+cm = sampleColourMap[sampleColourMap %in% x325$sampleColour]
+legend("topright", legend = names(cm), fill = cm)
+@
+\myincfig{figFGF4jitter}{0.6\textwidth}{FGF4 expression (microarray signal) in WT and KO samples.}{}
+
+%----------------------------------------------------------------
+\subsection{In E3.25, are the WT samples with low FGF4 expression more
+  similar to the FGF4-KO samples than those with high FGF4?}
+%----------------------------------------------------------------
+This question is addressed by the code below, whose result is shown in
+Figure~\ref{figFgf4MDS}.
+%
+<<Fgf4MDS>>=
+zero2one = function(x) (x-min(x))/diff(range(x))
+rgb2col = function(x) {x=x/255; rgb(x[,1], x[,2], x[,3])}
+
+colours = x325$sampleColour
+wt325 = x325$genotype=="WT"
+colourBar = function(x) rgb2col(colorRamp(c("yellow", "blue"))(zero2one(x)))
+colours[wt325] = colourBar(fgf4Expression)[wt325]
+
+selMDS = order(rv325, decreasing=TRUE)[seq_len(100)]
+<<figFgf4MDS,fig=TRUE,width=6,height=6,results=hide>>=
+MDSplot(x325[selMDS,], col=colours)
+<<figFgf4MDSColourBar,fig=TRUE,width=1.5,height=4>>=
+atColour = seq(min(fgf4Expression), max(fgf4Expression), length=20)
+image(z = rbind(seq(along=atColour)), col=colourBar(atColour),
+      xaxt="n", y=atColour, ylab="")
+@
+%
+\begin{figure}\begin{center}
+\includegraphics[width=.5\textwidth]{\prefix-figFgf4MDS}
+\includegraphics[width=2.5cm]{\prefix-figFgf4MDSColourBar}
+\caption[MDS plot of the E3.25 wild type and FGF4-KO samples.]{\label{figFgf4MDS}
+  \textbf{MDS plot of the E3.25 wild type
+  (yellow--blue) and FGF4-KO (orange) samples.}  The yellow--blue colour
+  scale represents the FGF4 expression level, as indicated in the
+  colour bar.}
+\end{center}\end{figure}
+%
+Figure~\ref{figFgf4MDS} indicates that
+\begin{enumerate}
+  \item there is a relationship between FGF4 expression and overall global expression
+    patterns in the WT samples;
+  \item WT samples with low FGF4 are more similar to the FGF4 KOs than
+    than WT samples with high FGF4.
+\end{enumerate}
+To more formally explore statement 2, we compute the Euclidean distance between
+each WT sample and the mean of the KOs, plot this against the FGF4
+expression level (Figure~\ref{figCorFgf4Dist}) and test for correlation:
+%
+<<corFgf4Dist>>=
+KOmean = rowMeans(exprs(x325)[selMDS, x325$genotype=="FGF4-KO"])
+dists = colSums((exprs(x325)[selMDS, wt325] - KOmean)^2)^0.5
+ct = cor.test(fgf4Expression[wt325], dists, method="spearman")
+ct
+<<figCorFgf4Dist,fig=TRUE,width=4.5,height=4.5>>=
+plot(fgf4Expression[wt325], dists, pch=16, main="E3.25 WT samples",
+     xlab="FGF4 expression", ylab="Distance to FGF4-KO", col=colours)
+@
+%
+\myincfig{figCorFgf4Dist}{0.6\textwidth}{Relationship between
+  FGF4 expression and similarity of the transcription profile to the KO.}{FGF4
+  expression of each sample is shown along the $x$-axis, the
+  $y$-axis corresponds to the distance to the mean FGF4-KO expression profile
+  computed over the \Sexpr{length(selMDS)} most variable features as
+  selected in \Robject{selMDS}.}
+%
+There is a significant correlation
+between FGF4 expression in WT and similarity of the overall expression
+profile with that of the FGF4 KOs.
+<<echo=FALSE>>=
+stopifnot(ct$p.value<0.01)
+@
+
+%-------------------------------------------------------------------
+\subsection{Variability of the FGF4-KO samples compared to WT samples}
+%-------------------------------------------------------------------
+To address this question, let us take some precaution
+against possible batch effects. Therefore, we split the samples first by the
+\Robject{sampleGroup} classification defined above, but then also into
+groups according to the value of \Robject{Total.number.of.cells},
+assuming that the samples within each such group have been processed
+together. See below.
+%
+<<FGF4variab1>>=
+varGroups = split(seq_len(ncol(x)), f=list(x$sampleGroup,x$Total.number.of.cells),
+                  sep=":", drop = TRUE)
+@ 
+%
+We can see how many samples are in each of these groups, and what the value of
+\Robject{ScanDate} is.
+<<ScanDate>>=
+data.frame(
+  `number arrays` = listLen(varGroups),
+  `ScanDates` = sapply(varGroups, function(v) 
+    paste(as.character(unique(x$ScanDate[v])), collapse=", ")),
+  stringsAsFactors = FALSE)
+@
+%
+Again select the top \Sexpr{nfeatures[3]} genes according to \Robject{varianceOrder}.
+%
+<<FGF4variab1>>=
+sel   = varianceOrder[seq_len(nfeatures[3])]
+myfun = function(x) median(apply(exprs(x), 1, mad))
+
+sds = lapply(varGroups, function(j) myfun(x[sel, j]))
+names(sds) = sprintf("%s (n=%d)", names(sds), listLen(varGroups))
+
+varGroupX = factor(sapply(strsplit(names(varGroups), split=":"),`[`, 1))
+<<figFGF4variab,fig=TRUE,width=5,height=5>>=
+par(mai=c(2,0.7,0.1,0.1))
+plot(jitter(as.integer(varGroupX)), sds, xaxt="n", xlab="", ylab="")
+text(x = as.integer(unique(varGroupX)), 
+     labels = as.character(unique(varGroupX)),
+     y = par("usr")[3], srt = 90, adj = c(1,0.5), xpd = NA)
+@
+%
+\myincfig{figFGF4variab}{0.6\textwidth}{Variability of different groups of
+  samples.}{The groups were defined by \Robject{sampleGroup} and \Robject{ScanDate} (see
+  definition of \Robject{varGroups} above). Variability was measured by the \emph{median}
+  (across the \Sexpr{length(sel)} top variable genes) of the \emph{median absolute
+    deviation} across samples.}
+%
+See Figure~\ref{figFGF4variab}. Due to the small numbers of samples, it is difficult
+to decide whether or not batch effects play an important role for estimating
+variability. This view is corroborated by the diagnostic plots in the \emph{quality
+  assessment report} from the \Rpackage{arrayQualityMetrics} package.
+
+So let us set aside the batch effect worries, and just compute and compare distributions
+of standard deviations\footnote{Since these standard deviations are computed on the
+  logarithmic scale, they correspond to coefficient of variation on the
+  not-log-transformed scale.}.
+<<sds>>=
+gps = split(seq_len(ncol(x)), f=x$sampleGroup)[c("E3.25", "E3.25 (FGF4-KO)")]
+sds = sapply(gps, function(j) apply(exprs(x)[sel, j], 1, mad))
+summary(sds)
+apply(sds, 2, function(x) c(`mean`=mean(x), `sd`=sd(x)))
+@ 
+
+%--------------------------------------------------
+\subsection{Do the FGF4-KO samples correspond to a particularly early substage
+  within E3.25 (as indicated by number of cells)?}
+%--------------------------------------------------
+See Figures~\ref{figNumberOfCells-100} and
+\ref{figNumberOfCells-1000}, which are produced by the code below.
+%
+<<numberOfCells, results=hide>>=
+for(n in c(100, 1000)) {
+  sel = order(rv325, decreasing=TRUE)[seq_len(n)]
+  KOmean = rowMeans(exprs(x325)[sel, x325$genotype=="FGF4-KO"])
+  dists = colSums((exprs(x325)[sel, wt325] - KOmean)^2)^0.5
+
+  pdf(file=sprintf("Hiiragi2013-figNumberOfCells-%d.pdf", n), width=8, height=11)
+  par(mfrow=c(2,1))
+  plot(x325$Total.number.of.cells[wt325], dists, pch=16, main="",
+       xlab="Total number of cells", ylab="Distance to FGF4-KO")
+  MDSplot(x325[sel, ], pointlabel = ifelse(x325$genotype=="WT",
+                         paste(x325$Total.number.of.cells), "KO"))
+  dev.off()
+}
+@
+%
+\myincfig{figNumberOfCells-100}{\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
+  {The 100 features with highest overall variance were used.}
+\myincfig{figNumberOfCells-1000}{\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
+  {The 1000 features with highest overall variance were used.}
+
+%--------------------------------------------------
+\subsection{Heatmap}
+%--------------------------------------------------
+For data visualisation, we produce a heatmap (Figure~\ref{figHeatmapKO}) that
+shows the data from the following groups
+<<selectedGroups>>=
+selectedGroups = c("E3.25", "E3.25 (FGF4-KO)")
+xKO = x[,safeSelect(selectedGroups)]
+selectedFeatures = order(rowVars(exprs(xKO)), decreasing=TRUE)[seq_len(100)]
+@
+%
+<<figHeatmapKO, fig=TRUE, width=12, height=16>>=
+myHeatmap(xKO[selectedFeatures, ],
+          collapseDuplicateFeatures=TRUE, haveColDend=TRUE)
+@
+<<checkClaim2, echo=FALSE>>=
+stopifnot("Fgf4" %in% fData(xKO)$symbol[selectedFeatures])
+@
+%
+\myincfig{figHeatmapKO}{\textwidth}{Heatmap of all arrays from groups
+  \Sexpr{paste(selectedGroups, collapse=", ")}.}{The
+  \Sexpr{length(selectedFeatures)} features with highest overall
+  variance were used. One of them shows Fgf4.}
+
+\clearpage
+%-----------------------------------------------------------------
+\subsection{Differentially expressed genes between FGF4-KO and WT (PE, EPI) at E3.5}\label{sec:deWTFGF4KO}
+%-----------------------------------------------------------------
+Let us compute the differentially expressed genes between WT and FGF4-KO,
+<<dewtko,cache=TRUE>>=
+x35 = x[,safeSelect(c("E3.5 (FGF4-KO)", "E3.5 (EPI)", "E3.5 (PE)"))]
+f1 = f2 = x35$sampleGroup
+f1[f1=="E3.5 (PE)" ] = NA
+f2[f2=="E3.5 (EPI)"] = NA
+x35$EPI=factor(f1, levels=c("E3.5 (FGF4-KO)", "E3.5 (EPI)"))
+x35$PE =factor(f2, levels=c("E3.5 (FGF4-KO)", "E3.5 (PE)"))
+de = list(`EPI`= rowttests(x35, "EPI"),
+           `PE`= rowttests(x35, "PE"))
+for(i in seq(along=de))
+  de[[i]]$p.adj = p.adjust(de[[i]]$p.value, method="BH")
+@
+<<figIndepFiltDeWtKo, fig=TRUE, pdf=FALSE, png=TRUE, width=7.3, height=9>>=
+par(mfcol=c(3,2))
+rkv = rank(-rowVars(exprs(x35)))
+fdrthresh = 0.05
+fcthresh =  1
+for(i in seq(along=de)) {
+  hist(de[[i]]$p.value, breaks=100, col="lightblue", main=names(de)[i], xlab="p")
+  plot(rkv, -log10(de[[i]]$p.value), pch=16, cex=.25, main="",
+       xlab="rank of overall variance", ylab=expression(-log[10]~p))
+  plot(de[[i]]$dm, -log10(de[[i]]$p.value), pch=16, cex=.25, main="",
+      xlab = "average log fold change",
+      ylab = expression(-log[10]~p))
+  abline(v=c(-1,1)*fcthresh[i], col="red")
+}
+@
+%
+\myincfig{figIndepFiltDeWtKo}{\textwidth}{Differentially expressed genes between
+  FGF4-KO and WT (\Sexpr{paste(names(de), collapse=", ")}) at E3.5.}{The upper panels show
+  the histograms of $p$-values, middle panels the scatter plots of rank of overall
+  variance (\Robject{rkv}) versus $-\log_{10} p$, lower panels $log_2$ fold-change versus
+  $-\log_{10} p$ (``volcano plots''). The red lines indicate possibly useful fold change thresholds.}
+%
+The plots are shown in Figure~\ref{figIndepFiltDeWtKo}. In contrast to
+Figure~\ref{figIndepFiltSetup}, this plot indicates no obvious choice of threshold
+from overall-variance (i.\,e., independent) filtering. In fact, there seem to be many
+probes with apparently significant changes but very low average fold changes. These could
+be caused by ``batch effects'', and we will apply the fold change threshold
+\Robject{fcthresh} to remove these.
+%
+<<fig2DWTKO,fig=TRUE,png=TRUE,pdf=FALSE,width=6,height=6>>=
+isSig = ((pmin(de$PE$p.adj, de$EPI$p.adj) < fdrthresh) &
+         (pmax(abs(de$PE$dm), abs(de$EPI$dm)) > fcthresh))
+table(isSig)
+plot(de$PE$dm, de$EPI$dm, pch=16, asp=1,
+     xlab=expression(log[2]~FGF4-KO / PE),
+     ylab=expression(log[2]~FGF4-KO / EPI),
+     cex=ifelse(isSig, 0.6, 0.1), col=ifelse(isSig, "red", "grey"))
+@ 
+%
+See Figure~\ref{fig2DWTKO}.
+\myincfig{fig2DWTKO}{0.5\textwidth}{Differentially expressed genes between
+  FGF4-KO and WT (\Sexpr{paste(names(de), collapse=", ")}) at E3.5.}{Shown is a
+  scatterplot of the average fold changes for both comparisons. Large values along the
+  $x$-axis indicate a relatively higher level of expression in E3.5 (FGF4-KO) compared to
+  E3.5 (PE), small (i.\,e.\ negative) values indicate higher expression in E3.5 (PE);
+  analogously for the $y$-axis.}
+%
+<<writetab35>>=
+df = cbind(fData(x35)[isSig,], `log2FC KO/PE` = de$PE$dm[isSig], `log2FC KO/EPI` = de$EPI$dm[isSig])
+write.csv(df, file="differentially_expressed_E3.5_vs_FGF4-KO.csv")
+ctrls = grep("^AFFX", rownames(df), value=TRUE)
+@ 
+ 
+\subsubsection{The probes for FGF4}
+Let us look at the data for the four probes annotated to FGF4.
+<<figFGF4ProbesInKO, fig=TRUE, width=8, height=7>>=
+par(mfrow=c(2,2))
+for(p in which(FGF4probes))
+  plot(exprs(x35)[p,], type="p", pch=16, col=x35$sampleColour, 
+       main=rownames(fData(x325))[p], ylab=expression(log[2]~expression)) 
+<<checkClaim3>>=
+stopifnot(sum(FGF4probes)==4)
+@ 
+%
+See Figure~\ref{figFGF4ProbesInKO}.
+\myincfig{figFGF4ProbesInKO}{\textwidth}{The probes for FGF4.}{As expected, the signal
+  from these probes in the KO samples is consistent with background.}
+
+\subsubsection{Behaviour of the control probes} 
+A notable problem (probably associated with the "batch effects" discussed above) is that
+\Robject{length(ctrls)=}\Sexpr{length(ctrls)} control probes appear as significant in this
+analysis. Let us plot the first 8 of them (see Figure~\ref{figCtrls}).
+<<figCtrls, echo=FALSE>>=
+stopifnot(length(ctrls)>=8)
+<<figCtrls, fig=TRUE, width=8, height=10>>=
+par(mfcol=c(4, 2))
+for(p in ctrls[1:8])
+  plot(exprs(x35)[p,], type="p", pch=16, col=x35$sampleColour, 
+       main=p, ylab=expression(log[2]~expression)) 
+@ 
+%
+\myincfig{figCtrls}{\textwidth}{Behaviour of some control probe sets.}{}
+
+%--------------------------------------------------
+\subsubsection{Gene set enrichment analysis}
+%------------------------------------------------------------
+%Fisher tests against KEGG pathways.
+<<kegg,cache=TRUE,eval=FALSE,echo=FALSE>>=
+allGenes = unique(fData(x35)$symbol)
+sigGenes = unique(df$symbol)
+ntot = length(allGenes)
+n1   = length(sigGenes)
+keggpw = as.list(mouse4302PATH2PROBE)
+fts = lapply(keggpw, function(ps) {
+   pwGenes = unique(as.character(mouse4302SYMBOL[ps]))
+   ovlGenes = intersect(pwGenes, sigGenes)
+   n2  = length(pwGenes)
+   nov = length(ovlGenes)
+   mat = matrix(c(ntot-n1-n2+nov, n2-nov, n1-nov, nov), ncol=2, nrow=2,
+      dimnames=list(`pathway`=c("no","yes"), `diff. expressed`=c("no","yes")))
+   ft = fisher.test(mat)
+   list(mat=mat, p.value=ft$p.value, estimate=ft$estimate, 
+        genes=paste(sort(ovlGenes), collapse=", ")) 
+   })
+@ 
+Kolmogorov-Smirnov tests against KEGG pathways.
+<<kegg,cache=TRUE>>=
+keggpw = as.list(mouse4302PATH2PROBE)
+dat  = de$PE$dm+de$EPI$dm
+fts = lapply(keggpw, function(ps) {
+  inpw = rownames(fData(x35)) %in% ps
+  ft   = ks.test( dat[inpw], dat[!inpw] )
+  list(p.value=ft$p.value, statistic=ft$statistic, n=sum(inpw)) 
+})
+@ 
+%
+First, let us select some prominent signalling pathways.
+<<pws1>>=
+pws = c("04010", "04070", "04150", "04310", "04330", "04340", "04350", "04370", "04630") 
+  # "04390", "04064", "04066", "04151", "04075", "04668"
+@ 
+%
+In addition, let us add those pathways with the strongest enrichment signal: 
+% less than 40 genes, $p$-value less than 0.01 and odds ratio greater than 2.
+% Table~\ref{tab:KEGG}, which we compute below, indicates that these pathways primarily
+% represent various parts of metabolism.
+<<pws2,eval=FALSE,echo=FALSE>>=
+pws = c(pws, names(fts)[ sapply(fts, function(x) 
+    with(x, (sum(mat[2,])<=40) && (p.value<0.01) && (estimate>=2))) ] )
+@ 
+<<pws2>>=
+pws = unique( c(pws, names(fts)[ sapply(fts, function(x) 
+    with(x, (n<=100) && (p.value<0.01))) ] ) )
+@ 
+%
+Make an online query at the KEGG database.
+%
+<<pwInfo,cache=TRUE>>=
+query  = paste0("mmu", pws)
+query  = split(query, seq(along=query) %/% 10)
+pwInfo = unlist(lapply(query, keggGet), recursive=FALSE)
+@ 
+<<assertion,echo=FALSE>>=
+stopifnot(all(pws %in% names(fts)))
+stopifnot(length(pwInfo)==length(pws))
+<<pwImgs,cache=TRUE,eval=FALSE,echo=FALSE>>=
+pwImgs = lapply(query, keggGet, option="image")
+stopifnot(length(pwImgs)==length(pws))
+@ 
+<<xtable,eval=FALSE,echo=FALSE>>=
+df=data.frame(
+  `id`   = pws,
+  `name` = sub(" - Mus musculus (mouse)", "", sapply(pwInfo, `[[`, "NAME"), fixed=TRUE),
+  `n`    = sapply(pws, function(x) sum(fts[[x]]$mat[2,])),
+  `differentially expressed genes` = sapply(pws, function(x) fts[[x]]$genes),
+  `p`          = as.character(signif(sapply(pws, function(x) fts[[x]]$p.value),  2)),
+  `odds-ratio` = as.character(signif(sapply(pws, function(x) fts[[x]]$estimate), 2)),
+  stringsAsFactors = FALSE, check.names=FALSE)
+<<xtable>>=
+df=data.frame(
+  `id`   = pws,
+  `name` = sub(" - Mus musculus (mouse)", "", sapply(pwInfo, `[[`, "NAME"), fixed=TRUE),
+  `n`         =                     sapply(pws, function(x) fts[[x]]$n),
+  `p`         = as.character(signif(sapply(pws, function(x) fts[[x]]$p.value),  2)),
+  `statistic` = as.character(signif(sapply(pws, function(x) fts[[x]]$statistic), 2)),
+  stringsAsFactors = FALSE, check.names=FALSE)
+<<printxtable>>=
+print(xtable(df,
+  caption = paste("Gene set enrichment analysis of selected KEGG pathways, for the differentially",
+                   "expressed genes between E3.5 FGF-4 KO and WT samples. n: number",
+                   "of microarray features annotated to genes in the pathway."),
+  label  ="tab:KEGG",
+  align  = c("l", "l","p{4cm}","r","r","r")),
+  type="latex", 
+  file="tab:KEGG.tex")
+@
+%   # align  = c("l", "l","p{4cm}","r","p{6cm}","r","r")),
+\input{tab:KEGG.tex}
+Table~\ref{tab:KEGG} shows 
+\begin{enumerate}
+\item first, the data for the manually selected signalling pathways,
+\item then, the pathways with the most prominent changes.
+\end{enumerate}
+We visualize their data in Figure~\ref{figShowPws}, see code below.
+<<figShowPws,fig=TRUE,png=TRUE,pdf=FALSE,width=16,height=20>>=
+par(mfrow=c(7,4)); stopifnot(length(pws)<=42)
+for(i in seq(along=pws)) {
+  inpw = factor(ifelse(rownames(fData(x35)) %in% keggpw[[pws[i]]], "in pathway", "outside"))
+  ord  = order(inpw)
+  enr  = paste0("p=", df$p[i], if(as.numeric(df$p[i])<0.05) paste(" D=", df$statistic[i]) else "")
+  multiecdf( (de$PE$dm+de$EPI$dm) ~ inpw, xlim=c(-1,1)*3, 
+            main=paste(df$name[i], enr, sep="\n"), xlab="mean difference between FGF4-KO and wildtype samples" )
+}
+@ 
+\myincfig{figShowPws}{\textwidth}{Differentially expressed genes between
+  FGF4-KO and WT (\Sexpr{paste(names(de), collapse=", ")}) at E3.5.}{}
+
+
+%--------------------------------------------------
+\section{Jensen-Shannon Divergence analysis}
+\label{sec:JSD}
+%--------------------------------------------------
+In the following, we will explore whether and how we can detect changes in the degree of
+"lack of correlation" ("heterogeneity") between cells. \cite{Buganim:2012} considered a
+measure of Jensen-Shannon Divergence
+(Figures 2C, D in their paper) with a similar idea in mind. 
+From their Supplement:
+\begin{quote}
+  JSD was calculated to assess within-group similarity of gene
+  expression within each cell line according to Lin (1991). Expression
+  values of genes were transformed so that they sum up to 1 in each
+  cell. Each cell $i$ is thus represented as a vector of probabilities
+  $P_i$. Cells from the same line were grouped together and for each
+  group, the JSD was calculated from the probability vectors
+  $(P_1,P_2,\ldots,P_n)$ of cells in each group.
+\begin{equation}
+  JSD(P_1,\ldots,P_n)=H\left(\frac{1}{n}\sum_{i=1}^n P_i\right)-\frac{1}{n}\sum_{i=1}^n H(P_i)
+\end{equation}
+where $H(P)$ is the Shannon entropy given by
+\begin{equation}
+  H(P)=-\sum_{i=1}^k P(x_i)\log_2P(x_i).
+\end{equation}
+Confidence intervals (CIs) were estimated by bootstrapping (sampling with replacement). The 95\% CIs were shown as error bars.
+\end{quote}
+
+Let's define R functions for this.
+<<defJSD>>=
+H = function(p) -sum(p*log2(p))
+JSD = function(m, normalize=TRUE) {
+  stopifnot(is.matrix(m), all(dim(m)>1))
+  if(normalize)
+    m = m/rowSums(m)
+  H(colMeans(m)) - mean(apply(m, 2, H))
+}
+@
+%
+For comparison, we consider below also the ordinary within-group standard deviation:
+%
+<<defSDV>>=
+SDV = function(m) sqrt(mean(rowVars(m)))
+@
+%
+This measure of divergence computes for each gene (feature on the
+array) the variance across arrays, then computes the average of these
+and takes the square root.
+
+Since the majority of the \Sexpr{nrow(x)} features on the array are
+dominated ``noise'' and/or potential technical drifts, we want to use
+only the most highly variable (i.\,e.\ most informative) features,
+%
+<<numberFeatures>>=
+numberFeatures = c(50, 200, 1000, 4000)
+@
+%
+as selected by overall variance. In the following, we
+will use the function \Rfunction{computeDivergences} to compute a
+measure of divergence, such as \Rfunction{JSD}, for each of the groups
+defined by \Robject{strata} and for the different choices of \Robject{numberFeatures}.
+%
+<<computeDivergences>>=
+computeDivergences = function(y, indices, fun) {
+  y = y[indices, ]
+  exprVals = y[, -1]
+  strata = y[, 1]
+  numStrata = max(strata)
+  stopifnot(setequal(strata, seq_len(numStrata)))
+
+  orderedFeatures = order(rowVars(t(exprVals)), decreasing=TRUE)
+  sapply(numberFeatures, function(n) {
+    selFeat = orderedFeatures[seq_len(n)]
+    sapply(seq_len(numStrata), function(s)
+             fun(exprVals[strata==s, selFeat, drop=FALSE]))
+  })
+}
+<<strata>>=
+x$sampleGroup = factor(x$sampleGroup)
+x$strata = as.numeric(x$sampleGroup)
+<<check,echo=FALSE>>=
+stopifnot(!any(is.na(x$strata)))
+@
+
+Now we are ready to go, we use the bootstrap to assess variability in our divergene estimates:
+<<doJSD,cache=TRUE>>=
+bootJSD = boot(data = cbind(x$strata, t(exprs(x))),
+               statistic = function(...) computeDivergences(..., fun=JSD),
+               R = 100, strata = x$strata)
+dim(bootJSD$t) = c(dim(bootJSD$t)[1], dim(bootJSD$t0))
+<<doSD,cache=TRUE>>=
+bootSDV = boot(data = cbind(x$strata, t(exprs(x))),
+               statistic = function(...) computeDivergences(..., fun=SDV),
+               R = 100, strata = x$strata)
+dim(bootSDV$t) = c(dim(bootSDV$t)[1], dim(bootSDV$t0))
+@
+%
+The resulting values (mean and distribution indicated by boxplot) are shown in Figure~\ref{fig-JSD}.
+%
+<<fig-JSD,fig=TRUE,width=10,height=11>>=
+par(mfrow=c(length(numberFeatures),2))
+colores = sampleColourMap[levels(x$sampleGroup)]
+for(i in seq(along=numberFeatures)) {
+  for(what in c("JSD", "SDV")){
+    obj = get(paste("boot", what, sep=""))
+    boxplot(obj$t[,,i], main=sprintf("numberFeatures=%d", numberFeatures[i]),
+            col=colores, border=colores, ylab=what, xaxtb="n")
+    px = seq_len(ncol(obj$t))
+    text(x=px, y=par("usr")[3], labels=levels(x$sampleGroup),
+         xpd=NA, srt=45, adj=c(1,0.5), col=colores)
+    points(px, obj$t0[,i], pch=16)
+  }
+}
+@
+%
+\myincfig{fig-JSD}{\textwidth}{Jensen-Shannon divergences}{JSD is
+  shown on the left; on the right, for comparison we performed the same
+  analysis with \emph{within-group standard deviation} as another
+  measure of group spread.}
+
+\clearpage
+%--------------------------------------------------
+\section{Classification of temporal profiles}
+\label{sec:temp}
+%--------------------------------------------------
+\begin{figure}[tbp]
+  \begin{center}
+  \includegraphics[width=\textwidth]{FigTemporalChangeLineageMarkerExp}
+  \caption[Temporal change of the lineage marker expression]{\label{FigTemporalChangeLineageMarkerExp}%
+\textbf{Temporal change of the lineage marker expression} Example figure provided by Takashi in Email of 9 Oct 2012.  
+  Red genes are known lineage markers.
+% we wanted to place novel markers into this context of sequential activation of different markers.
+% \cite{Pina:2012} did similar with the whole transcriptome (Figure 2b). 
+% Can we also classify from our microarry data the potential markers into these classes, have something 
+% like Figure 2b and identify those genes included in each class?
+}
+  \end{center}
+\end{figure}
+
+\subsection{Compare microarray data with qPCR results}
+First, let us plot the microarray data for all probesets annotated to the genes shown in
+Figure~\ref{FigTemporalChangeLineageMarkerExp}. We write the output into an extra PDF file,
+\texttt{exemplaryGenes.pdf}.
+%
+<<xs>>=
+xs = x[, pData(x)$sampleGroup %in%
+   c("E3.25", "E3.5 (PE)", "E4.5 (PE)", "E3.5 (EPI)", "E4.5 (EPI)")]
+xs$sampleGroup = factor(xs$sampleGroup)
+@
+<<myBoxplot>>=
+myBoxplot = function(ps) {
+  fac = factor(pData(xs)$sampleGroup)
+  boxplot(exprs(xs)[ps,] ~ fac, col=sampleColourMap[levels(fac)], lim=c(2,14),
+          main=sprintf("%s (%s)", fData(x)[ps, "symbol"], ps), show.names=FALSE)
+  text(seq(along=levels(fac)), par("usr")[3] - diff(par("usr")[3:4])*0.02,
+       levels(fac), xpd=NA, srt=90, adj=c(1,0.5), cex=0.8)
+}
+<<showGenes,results=hide>>=
+exemplaryGenes = read.table(header=TRUE, stringsAsFactors=FALSE, text = "
+symbol   thclass  probeset
+Gata6      C-1 1425464_at
+Tom1l1     C-1 1439337_at
+Sox2       C-1 1416967_at
+Pdgfra    PE-2 1438946_at
+Sox17     PE-2 1429177_x_at
+P4ha2     PE-2 1417149_at
+Gata4     PE-3 1418863_at
+Aldh18a1  PE-3 1415836_at
+Col4a1    PE-3 1452035_at
+Col4a2    PE-3 1424051_at
+Cubn      PE-3 1426990_at
+Lamb1     PE-3 1424113_at
+Dab2      PE-4 1423805_at
+Lrp2      PE-4 1427133_s_at
+Amn       PE-4 1417920_at
+Fgf4     EPI-2 1420085_at
+Nanog    EPI-2 1429388_at
+Tdgf1    EPI-2 1450989_at
+Cldn4    EPI-4 1418283_at
+Enox1    EPI-4 1436799_at")
+
+pdf(file="exemplaryGenes.pdf", width=8, height=11)
+par(mfrow=c(5,3))
+for(i in seq_len(nrow(exemplaryGenes))) {
+  wh = featureNames(x)[fData(x)[,"symbol"]==exemplaryGenes[i,"symbol"]]
+  stopifnot(length(wh)>=1)
+  sapply(wh, myBoxplot)
+}
+dev.off()
+@
+%
+Based on these plots, we assigned one ``trustworthy'' probeset to each
+gene, indicated in the above table.
+%
+<<fig-ExemplaryGenes,fig=TRUE,width=13,height=18,results=hide>>=
+layout(rbind(c(1, 4,   7, 13),
+             c(2, 5,   8, 14),
+            c(21, 6,   9, 15),
+             c(3, 16, 10, 19),
+            c(22, 17, 11, 20),
+            c(23, 18, 12, 24)))
+
+xs = x
+xs$sampleGroup = factor(xs$sampleGroup)
+xs$sampleGroup = relevel(xs$sampleGroup, "E4.5 (PE)")
+xs$sampleGroup = relevel(xs$sampleGroup, "E4.5 (EPI)")
+xs$sampleGroup = relevel(xs$sampleGroup, "E3.5 (PE)")
+xs$sampleGroup = relevel(xs$sampleGroup, "E3.5 (EPI)")
+xs$sampleGroup = relevel(xs$sampleGroup, "E3.25")
+
+for(i in seq_len(nrow(exemplaryGenes))) 
+  myBoxplot(exemplaryGenes[i, "probeset"])
+@
+%
+The output is shown in Figure~\ref{fig-ExemplaryGenes}, which we
+can compare to Figure~\ref{FigTemporalChangeLineageMarkerExp}.
+\myincfig{fig-ExemplaryGenes}{\textwidth}{Boxplots of the
+  microarray expression data for exemplary genes.}{Compare this to
+  Figure~\ref{FigTemporalChangeLineageMarkerExp}. The agreement is
+  satisfactory.}
+
+\clearpage
+%--------------------------------------------------
+\subsection{Rule-based classification}
+%--------------------------------------------------
+For EPI and PE separately, we define 4 classes as indicated in
+Figure~\ref{FigTemporalChangeLineageMarkerExp}:
+%
+\begin{itemize}
+  \item class 1: highest in E3.25
+  \item class 2: highest in E3.5 and off in the other lineage (at E3.5, E4.5)
+  \item class 3: E3.25 < E3.5 < E4.5 and off in the other lineage (at E4.5)
+  \item class 4: off in E3.25 and E3.5, on in E4.5, and off in the other lineage (at E4.5) 
+\end{itemize}
+%
+To implement these rules, let us define the helper function \Rfunction{greater}, which
+determines if a gene has an average log fold change larger than \Robject{thresh} between
+each of the conditions in \Robject{cond1} versus each of the conditions in
+\Robject{cond2}.
+%
+<<avglfc>>=
+greater = function(cond1, cond2, thresh=2) {
+  stopifnot(all(cond1 %in% names(groups)), all(cond2 %in% names(groups)))
+  rm1 = lapply(groups[cond1], function(j) rowMeans(exprs(x)[, j]))
+  rm2 = lapply(groups[cond2], function(j) rowMeans(exprs(x)[, j]))
+  res = rep(TRUE, nrow(x))
+  for(v1 in rm1) for(v2 in rm2) 
+      res = res & ((v1-v2) > thresh)
+  return(res)
+}
+@
+%
+Next, we compute \Robject{xsc}, a version of the data matrix \Robject{x} that has been
+scaled to the range $[0,1]$, such that \emph{for each gene}, the lowest value across
+arrays corresponds to 0, and the highest value to 1. (In the code below, we actually use
+0.025\% and 97.5\% quantiles instead of lowest and highest values, that is just to ensure
+some statistical robustness.)
+%
+<<minLevel,cache=TRUE>>=
+xquantiles = apply(exprs(x), 1, quantile, probs=c(0.025, 0.975))
+minLevel = xquantiles[1,]
+maxLevel = xquantiles[2,]
+trsf2Zero2One = function(x) {
+  x = (x-minLevel)/(maxLevel-minLevel)
+  x[x<0] = 0
+  x[x>1] = 1
+  return(x)
+}
+xsc = x
+exprs(xsc) = trsf2Zero2One(exprs(x))
+@ 
+%
+We will use \Robject{xsc} for the heatmap (Figure~\ref{figHeatmapthclasses}).
+The function \Rfunction{isOff} determines whether a gene is off by
+checking whether more than 90\% of the arrays in the condition(s) specified by
+\Robject{cond} have values below \Robject{minLevel} + \Robject{thresh}.
+%
+<<isOff>>=
+isOff = function(cond, thresh=2) {
+  stopifnot(all(cond %in% names(groups)))
+  samps = unlist(groups[cond])
+  rowSums(exprs(x)[, samps] > minLevel+thresh) <= ceiling(length(samps) * 0.1)
+}
+@ 
+%
+Now we can do the classification.
+%
+<<classification>>=
+  `C-1` =  greater("E3.25", c("E3.5 (EPI)", "E4.5 (EPI)", "E3.5 (PE)", "E4.5 (PE)"))
+`EPI-2` =  greater("E3.5 (EPI)", c("E3.25")) &
+           greater("E3.5 (EPI)", "E4.5 (EPI)", thresh=0.5) &
+           isOff("E3.5 (PE)")  & isOff("E4.5 (PE)" )
+ `PE-2` =  greater("E3.5 (PE)",  c("E3.25")) &
+           greater("E3.5 (PE)",  "E4.5 (PE)", thresh=0.5)  & 
+           isOff("E3.5 (EPI)") & isOff("E4.5 (EPI)")
+`EPI-4` = (greater("E4.5 (EPI)", c("E3.25", "E3.5 (EPI)")) &
+           isOff(c("E3.25", "E3.5 (EPI)")) & 
+           isOff("E4.5 (PE)" ))
+ `PE-4` = (greater("E4.5 (PE)", c("E3.25", "E3.5 (PE)")) &
+           isOff(c("E3.25", "E3.5 (PE)")) & 
+           isOff("E4.5 (EPI)"))
+`EPI-3` = (greater("E3.5 (EPI)", "E3.25", thresh=0.5) &
+           greater("E4.5 (EPI)", "E3.5 (EPI)", thresh=0.5) &
+           greater("E4.5 (EPI)", "E3.25", thresh=3)   & 
+           isOff("E4.5 (PE)") & !`EPI-4`)
+ `PE-3` = (greater("E3.5 (PE)",  "E3.25", thresh=0.5) &
+           greater("E4.5 (PE)",  "E3.5 (PE)",  thresh=0.5) &
+           greater("E4.5 (PE)",  "E3.25", thresh=3) & 
+           isOff("E4.5 (EPI)") & !`PE-4`)
+thclasses = cbind(`C-1`, `EPI-2`, `EPI-3`, `EPI-4`, `PE-2`,  `PE-3`,  `PE-4`)
+@ 
+We want each feature to be in exactly one group:
+<<onegroup>>=
+multiclass = thclasses[rowSums(thclasses)>1,, drop=FALSE]
+stopifnot(nrow(multiclass)==0)
+@ 
+The group sizes:
+<<cs>>=
+colSums(thclasses)
+@
+<<figHeatmapthclasses, fig=TRUE, width=28, height=66>>=
+agr = groups[c("E3.25", "E3.5 (EPI)", "E4.5 (EPI)", "E3.5 (PE)", "E4.5 (PE)")]
+fgr = apply(thclasses, 2, which)
+xsub = xsc[unlist(fgr), unlist(agr)]
+mat = exprs(xsub)
+rownames(mat) = fData(xsub)[, "symbol"]
+myHeatmap2(mat, keeprownames=TRUE,
+     rowGroups=factor(rep(seq(along=fgr), listLen(fgr))),
+     colGroups=factor(rep(seq(along=agr), listLen(agr))))
+@ 
+%
+\myincfig{figHeatmapthclasses}{9.5cm}{Heatmap of all classes}{of
+  the [0,1]-scaled data matrix \Robject{xsc}. From left
+  to right, the \Sexpr{length(agr)} blocks correspond to the
+  conditions \Sexpr{paste(names(agr), collapse=', ')}. From bottom to top, 
+  the \Sexpr{length(fgr)} blocks correspond to the feature
+  (gene) classes \Sexpr{paste(names(fgr), collapse=', ')}. Within
+  classes, genes are sorted by dendrogram clustering.}
+%
+The heatmap is shown in Figure~\ref{figHeatmapthclasses}. 
+
+\subsubsection{Table export}
+
+<<writecsv>>=
+out = do.call(rbind, lapply(seq(along=fgr), function(i) 
+  cbind(`class`=names(fgr)[i], fData(xsc)[fgr[[i]],])))
+write.csv(out, file="featureclassification.csv")
+@ 
+
+\subsubsection{Comparison with manual classification} 
+
+Figure 2b in the paper shows qPCR data for these seven genes:
+%
+<<fig2bGenes>>=
+fig2bGenes = c("Aldh18a1", "Col4a1", "Cubn", "Foxq1", "Gata4", "Lamb1", "Serpinh1")
+@
+The genes classified as PE-3 in the above microarray data rule-based classification are
+<<rbGenes>>=
+rbGenes = sort(unique(fData(x)$symbol[thclasses[,"PE-3"]]))
+rbGenes
+@
+Difference:
+<<setdiff>>=
+setdiff(fig2bGenes, rbGenes)
+@
+
+
+%--------------------------------------------------
+\section{qPCR data analysis}
+%--------------------------------------------------
+\subsection{Heatmaps for all data in \Robject{xq}}
+%--------------------------------------------------
+We first load the data
+<<load>>=
+data("xq")
+@
+%
+<<hmprep>>=
+xq$sampleColours = sampleColourMap[sub("[[:digit:]]+ ", "", sampleNames(xq))]
+stopifnot(!any(is.na(xq$sampleColours)))
+@ 
+%
+Define a function \Rfunction{myHeatmap3} that creates heatmaps.
+<<myHeatmap3>>=
+myHeatmap3 = function(x, log=TRUE, 
+  col=colorRampPalette(brewer.pal(9, "Blues"))(ncol), ncol=100, ...) {
+  mat = exprs(x)
+  if(log){
+    mat[mat<1] = 1
+    mat = log10(mat)
+  }
+  rownames(mat) = fData(x)[, "symbol"]
+  heatmap.2(mat, trace="none", dendrogram="none", scale="none", 
+          col=col,
+          keysize=0.9,
+          ColSideColors=x$sampleColour, margins=c(5,7), ...)
+}
+@ 
+Call the function on \Robject{xq}.
+<<fighm1,width=14,height=10,fig=TRUE>>=
+myHeatmap3(xq)
+@ 
+%
+See Figure~\ref{fighm1}.
+\myincfig{fighm1}{\textwidth}{Heatmap of the qPCR data set.}{
+  The data are shown on the logarithmic (base 10) scale. Before transformation, values $<1$ were set to 1.
+  The colour code of the bar at the top is as in Figure~\ref{figProjection}.}
+
+
+\subsection{Heatmaps for the seven selected genes and selected samples}
+<<fighm2,width=14,height=7,fig=TRUE>>=
+selectedGenes=c("Col4a1", "Lamab1", "Cubn", "Gata4", "Serpinh1", "Foxq1", "Aldh18a1")
+myHeatmap3(xq[selectedGenes,])
+<<checkAssertion,echo=FALSE>>=
+stopifnot(length(selectedGenes)==7)
+@ 
+%
+See Figure~\ref{fighm2}.
+\myincfig{fighm2}{\textwidth}{Heatmap of the qPCR data for the 7 selected genes.}{}
+ 
+<<selectedPE>>=
+selectedSamples = (xq$Cell.type %in% c("ICM", "PE"))
+table(xq$sampleGroup[selectedSamples])
+sxq = xq[selectedGenes, selectedSamples]
+groups = c("E3.25", "E3.5 (PE)", "E4.5 (PE)")
+sxq$fsampleGroup = factor(sxq$sampleGroup, levels=groups)
+stopifnot(!any(is.na(sxq$fsampleGroup)))
+@ 
+<<fighm3,width=14,height=7,fig=TRUE>>=
+myHeatmap3(sxq)
+@ 
+See Figure~\ref{fighm3}.
+\myincfig{fighm3}{\textwidth}{Heatmap for the 7 selected genes and the
+  samples \Sexpr{paste(sort(unique(xq$sampleGroup[selectedSamples])), collapse=",")}.}{Rows and columns are ordered by clustering dendrogram.}
+
+\subsection{Distribution of the data and discretisation}\label{sec:disc}
+\myincfig{figthr}{\textwidth}{Visualisation of the qPCR data for the seven
+  genes.}{Shown are also the within-group means (horizontal dotted light grey lines) and the
+  discretisation thresholds (horizontal solid dark grey lines).}
+The qPCR expression levels in \Robject{sxq} are compared, separately for each gene,
+against the midpoint of the means of successive groups (\Sexpr{paste(groups, collapse=', ')}).
+This is illustrated in Figure~\ref{figthr}.
+%
+<<discr,cache=TRUE>>=
+groupmedians = t(apply(exprs(sxq), 1, function(v) tapply(v, sxq$sampleGroup, median)))
+stopifnot(identical(colnames(groupmedians), groups), length(groups)==3)
+discrthreshs = (groupmedians[, 2:3] + groupmedians[, 1:2]) / 2
+stst = sapply(split(seq(along=sxq$sampleGroup), sxq$sampleGroup), 
+  function(v) {i1=head(v,1); i2=tail(v,1); stopifnot(identical(v, i1:i2)); c(i1,i2)})
+<<show>>=
+groupmedians
+discrthreshs
+<<figthr,width=6,height=7,fig=TRUE>>=
+par(mfrow=c(nrow(sxq), 1), mai=c(0.1, 0.7, 0.01, 0.01))
+for(j in seq_len(nrow(sxq))) {
+  plot(exprs(sxq)[j,], type="n", xaxt="n", ylab=fData(sxq)$symbol[j])
+  segments(x0=stst[1,],    x1=stst[2,],    y0=groupmedians[j,],   col="#808080", lty=3)
+  segments(x0=stst[1,1:2], x1=stst[2,2:3], y0=discrthreshs[j,], col="#404040")
+  points(exprs(sxq)[j,], pch=16, col=sxq$sampleColour)
+}
+@ 
+%
+
+In this way, the data are assigned to three discrete levels: 
+\begin{enumerate} 
+  \item less than the midpoint of the means of \Sexpr{groups[1]} and 
+        \Sexpr{groups[2]},
+  \item in between 1.~and 3.,
+   \item higher than the midpoint of the means of \Sexpr{groups[2]} and 
+        \Sexpr{groups[3]},
+\end{enumerate} 
+The result of this is shown in Figure~\ref{fighmd}, where these three levels
+are represented by white, light blue, dark blue.
+
+<<discretisation1>>=
+discretize = function(x) {
+  exprs(x) = t(sapply(seq_len(nrow(exprs(x))), function(r) {
+      as.integer(cut(exprs(x)[r, ], breaks=c(-Inf, discrthreshs[r,],+Inf)))
+  }))
+  return(x)
+}
+<<discretisation2,cache=FALSE>>=
+sxqd = discretize(sxq)
+<<fighmd,width=12,height=5,fig=TRUE>>=
+myHeatmap3(sxqd, log=FALSE, Colv=FALSE, Rowv=FALSE, key=FALSE, ncol=3)
+@ 
+%
+\myincfig{fighmd}{\textwidth}{Heatmap for the discretized values.}{Rows and
+  colums are in the original order.}
+
+\clearpage
+\subsection{Temporal order - hierarchy}
+\begin{figure}[htbp]
+\input{fighmd.tex}
+\begin{center}
+\caption[Heatmaps, sorted]{\label{fighmd-mult}Heatmaps, ordered to show
+  potential hierarchy of successive activation. This was done separately for the E3.25 --
+  E3.5 (PE) and the E3.5 (PE) -- E4.5 (PE) comparisons (as indicated by the horizontal
+  colour bar). Note: if multiple equally optimally solutions were found, all are displayed.}          
+\end{center}
+\end{figure}
+Now we look for a (putatively: temporal) ordering of genes, so that the number of cases
+(samples $\times$ genes) in which a lower level follows a higher one is minimised. More
+specifically, the function \Rfunction{costfun1} below adds a penalty of 1 for every
+instance that in a sample, white follows \emph{after} blue in an E3.5 sample (for the
+E3.25$\to$E3.5 transition), and \Rfunction{costfun2} adds a penalty of 1 when white/light
+blue follow \emph{after} dark blue in an E4.5 sample (for E3.5$\to$E4.5) .
+%
+<<bruteForceOptimisation1,cache=TRUE>>=
+stopifnot(all(exprs(sxqd)%in%(1:3)))
+
+costfun1 = function(x, sg) {
+  k = (sg=="E3.5 (PE)")
+  mean( (x[-1,k]==1) & (x[-nrow(x),k]>1 ) )
+}
+costfun2 = function(x, sg) {
+  k = (sg=="E4.5 (PE)")
+  mean( (x[-1,k]<3 ) & (x[-nrow(x),k]==3) )
+}
+
+perms = permutations(nrow(sxq), nrow(sxq))
+bruteForceOptimisation = function(fun, samps) {
+  if (missing(samps)) samps=rep(TRUE, ncol(sxqd))
+  apply(perms, 1, function(i) fun(exprs(sxqd)[i, samps], sxq$sampleGroup[samps]))
+}
+
+costs = list(
+ `E3.25 -> E3.5` = bruteForceOptimisation(costfun1),
+  `E3.5 -> E4.5` = bruteForceOptimisation(costfun2))
+whopt  = lapply(costs, function(v) which(v==min(v)))
+@ 
+
+<<fighmd>>=
+outf = file("fighmd.tex", open="w")
+for(i in seq(along=costs)) {
+  sxqdsub = switch(i,
+     { 
+       rv = sxqd[, sxqd$sampleGroup %in% groups[2] ]
+       exprs(rv)[ exprs(rv)>2 ] = 2
+       rv
+     }, {
+       rv = sxqd[, sxqd$sampleGroup %in% groups[3] ]
+       exprs(rv)[ exprs(rv)<2 ] = 2
+       exprs(rv) = exprs(rv)-1
+       rv
+     })
+  columnOrder = order(sxqdsub$sampleGroup, colSums(exprs(sxqdsub)))
+  for(w in whopt[[i]]) {
+    fn = sprintf("fighmd-%d-%d.pdf", i, w)
+    pdf(fn, width=7, height=3)
+    myHeatmap3(sxqdsub[ perms[w, ], columnOrder], log=FALSE, Colv=FALSE, Rowv=FALSE,
+               key=FALSE, ncol=2, breaks=seq(0.5, 2.5, by=1))
+    dev.off()
+    cat("\\includegraphics[width=0.49\\textwidth]{", fn, "}\n", file=outf, sep="")
+  }
+}
+close(outf)
+@ 
+<<printcosts>>=
+for(i in seq(along=costs)) {
+  k = unique(costs[[i]][whopt[[i]]])
+  stopifnot(length(k)==1)
+  cat(sprintf("%14s: cost %g\n", names(costs)[[i]], k))
+}
+@ 
+%
+See Figure~\ref{fighmd}.
+
+%------------------------------------------------------------
+\subsubsection{How significant is this?}
+%------------------------------------------------------------
+Repeat the above with bootstrapping.
+<<boot-takes-a-long-time,cache=TRUE>>=
+bopt = lapply(list(costfun1, costfun2), function(fun) {
+  boot(data = seq_len(ncol(sxqd)), 
+       statistic = function(dummy, idx) {
+         min(bruteForceOptimisation(fun, idx))
+       }, R=250) 
+})
+@ 
+% Note: 'length(idx)' above will always be equal to 'ncol(x)', since 'boot' samples with duplicates
+
+
+<<figboot,width=7,height=5,fig=TRUE>>=
+names(bopt) = names(costs)
+lapply(bopt, `[[`, "t0")
+multiecdf(lapply(bopt, `[[`, "t"))
+t.test(x=bopt[[1]]$t, y=bopt[[2]]$t)
+@ 
+%
+See Figure~\ref{figboot}.
+\myincfig{figboot}{.6\textwidth}{Distribution of bootstrap-resampled optimal
+  costs ("disorder penalties").}{Shown are the empirical distribution function of the
+  bootstrap-sampled cost functions for the two situations. The values for
+  \Sexpr{names(costs)[2]} are significantly smaller (see also $t$-test result in the main text).}
+
+\appendix
+
+\section{MDS plot}
+
+The MDS plot in Fig.~\ref{mdsplot} was produced using the following code. 
+
+<<mdsplot,width=5,height=5,fig=TRUE,results=hide>>=
+data("xql")
+
+labeledSampleColourMap = c(brewer.pal(5, "RdGy")[c(1,2)], brewer.pal(5, "BrBG")[c(4,5)])
+names(labeledSampleColourMap) = c("E4.5_high", "E3.5_high", "E3.5_low",  "E4.5_low")
+labeledGroups = with(pData(xql), list(
+  `E3.5_high` = which(Label=="High" & Embryonic.day=="E3.5"),
+  `E3.5_low`  = which(Label=="Low"  & Embryonic.day=="E3.5"),
+  `E4.5_high`	= which(Label=="High" & Embryonic.day=="E4.5"),
+  `E4.5_low`  = which(Label=="Low"  & Embryonic.day=="E4.5")))
+
+labeledSampleColours = rep(NA_character_, ncol(xql))
+for(i in seq(along=labeledGroups))
+  labeledSampleColours[labeledGroups[[i]]] = labeledSampleColourMap[names(labeledGroups)[i]]
+xql$sampleColours = labeledSampleColours
+
+md = isoMDS( dist(t(log(exprs(xql),2))))$points
+plot(md, col=xql$sampleColours, pch=16, asp=1, xlab="",ylab="")
+@
+\myincfig{mdsplot}{.6\textwidth}{MDS plot}
+
+
+\section{Correlation between Fgf ligands and Fgf receptors}
+
+Figure~\ref{figure5b} was produced using the following code. 
+<<figure5b,width=10,height=2.5,fig=TRUE>>=
+xs = x[, (x$genotype %in% "WT") & (x$Embryonic.day %in% c("E3.25","E3.5","E4.5"))]
+
+Fgf3 = c("1441914_x_at")
+Fgf4 = c("1420086_x_at")
+Fgfr2 = c("1433489_s_at")
+Fgfr3 = c("1421841_at")
+Fgfr4 = c("1418596_at")
+
+correlationPlot = function(ID){
+  xsl=xs[ID, ]
+  mat=exprs(xsl)
+  rownames(mat) = fData(xsl)[, "symbol"]
+  plot(t(mat), pch=16, asp=1, cex=1.25, cex.lab=1.2, col=xs$sampleColour,
+       xlim=c(2,12), ylim=c(3,11))
+}
+
+par(mfrow=c(1,4))
+correlationPlot(c(Fgf4,Fgfr2))
+correlationPlot(c(Fgf4,Fgfr3))
+correlationPlot(c(Fgf3,Fgfr3))
+correlationPlot(c(Fgf3,Fgfr4))
+@ 
+%
+\myincfig{figure5b}{\textwidth}{Figure 5b}
+
+
+%---------------------------------------------------------
+% SessionInfo
+%---------------------------------------------------------
+\section{Session info}
+Below, the output is shown
+of \Rfunction{sessionInfo} on the system on which this document was compiled.
+<<sessionInfo, results=tex, print=TRUE>>=
+toLatex(sessionInfo())
+@
+
+%---------------------------------------------------------
+% readdata.R
+%---------------------------------------------------------
+\section{The data import script \texttt{readdata.R}}\label{sec:readdata}
+\lstinputlisting[language=R,
+label=readdata,breaklines=true,caption={The script \texttt{readdata.R}}]{readdata.R}
+
+%------------------------------------------------------------
+\bibliographystyle{unsrt}
+\bibliography{bibliography}
+%------------------------------------------------------------
+
+\end{document}

@@ -1,0 +1,6 @@
+export(pamCluster)
+export(plotProjection)
+export(myHeatmap)
+export(myHeatmap2)
+export(MDSplot)
+export(getDifferentialExpressedGenes)
