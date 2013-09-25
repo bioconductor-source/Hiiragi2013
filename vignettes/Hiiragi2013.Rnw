@@ -1178,7 +1178,7 @@ pws = c("04010", "04070", "04150", "04310", "04330", "04340", "04350", "04370", 
 %
 In addition, let us add those pathways with the strongest enrichment signal: 
 % less than 40 genes, $p$-value less than 0.01 and odds ratio greater than 2.
-% Table~\ref{tab:KEGG}, which we compute below, indicates that these pathways primarily
+% Table~\ref{tab_KEGG}, which we compute below, indicates that these pathways primarily
 % represent various parts of metabolism.
 <<pws2,eval=FALSE,echo=FALSE>>=
 pws = c(pws, names(fts)[ sapply(fts, function(x) 
@@ -1225,14 +1225,14 @@ print(xtable(df,
   caption = paste("Gene set enrichment analysis of selected KEGG pathways, for the differentially",
                    "expressed genes between E3.5 FGF-4 KO and WT samples. n: number",
                    "of microarray features annotated to genes in the pathway."),
-  label  ="tab:KEGG",
+  label  ="tab_KEGG",
   align  = c("l", "l","p{4cm}","r","r","r")),
   type="latex", 
-  file="tab:KEGG.tex")
+  file="tab_KEGG.tex")
 @
 %   # align  = c("l", "l","p{4cm}","r","p{6cm}","r","r")),
-\input{tab:KEGG.tex}
-Table~\ref{tab:KEGG} shows 
+\input{tab_KEGG.tex}
+Table~\ref{tab_KEGG} shows 
 \begin{enumerate}
 \item first, the data for the manually selected signalling pathways,
 \item then, the pathways with the most prominent changes.
