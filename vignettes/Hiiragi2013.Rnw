@@ -32,7 +32,7 @@ BiocStyle::latex()
   showstringspaces=false
 }
 
-\newcommand{\prefix}{\jobname}
+\renewcommand{\prefix}{\jobname}
 \newcommand{\myincfig}[4]{%
   \begin{figure}[tbp]
   \begin{center}
@@ -59,10 +59,10 @@ BiocStyle::latex()
 \title{{\Large Executable Analysis Document Supporting:}\\
   \textbf{Cell-to-cell gene expression variability followed by reinforcement 
   progressively segregates lineages in the early mouse embryo}\\
-  {\Large Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej Ole\'s, 
+  {\Large Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej K.~Ole\'s, 
     Marcos J.~Ara\'uzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis and Takashi Hiiragi}}
 
-\renewcommand{\thetitle}{Analysis report: Ohnishi et.~al., 2013} % short title used in headers
+\renewcommand{\thetitle}{Analysis report: Ohnishi et al., 2013} % short title used in headers
 \author{Authors of this document: Andrzej K.~Ole\'s, Wolfgang Huber}
 
 \maketitle
