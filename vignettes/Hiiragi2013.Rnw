@@ -408,6 +408,31 @@ for(i in seq(along=csa))
 The results of the above code are shown in Figure~\ref{figClue2} and indicate that
 indeed FGF4-KO E4.5 cells are distinct from either of the WT groups.
 
+
+%-----------------------------------------------------------
+\subsection{E3.25 WT and E3.5 FGF4-KO samples}\label{sec:clueko}
+%-----------------------------------------------------------
+
+On the PCA plot in Figure~\ref{figmds-2} dots representing FGF4
+KO  cells at E3.5 overlap with ones representig E3.25 WT. To examine whether they indeed cluster together we perform a cluster
+stability analysis analogous to that in the previous section.
+
+<<ce3,cache=TRUE>>=
+sampleSet = unlist(groups[c("E3.25", "E3.5 (FGF4-KO)")])
+r = clusterResampling(x[!FGF4probes, sampleSet], ngenes=20)
+@
+<<figClue3,fig=TRUE,width=8,height=6>>=
+par(mfrow=c(1,2))
+  for(j in seq_len(2))
+    plot(cl_membership(r$consensus)[,j], 
+     ylab=paste0("P(cluster ", j, ")"), xlab="Samples", col=x$sampleColour[sampleSet], pch=16, cex=1.5)
+@ 
+%
+\myincfig{figClue3}{\textwidth}{Cluster stability analysis with WT and FGF4-KO samples.}{}
+%
+
+
+
 %----------------------------------------------------------
 \clearpage
 \section{Lineage Markers}
