@@ -1,4 +1,4 @@
-%rm(list=ls());library("cacheSweave");setCacheDir("sweavecache");Sweave("Hiiragi2013.Rnw", driver=cacheSweaveDriver());system("pdflatex Hiiragi2013.tex")
+%rm(list=ls());library("cacheSweave");setCacheDir("sweavecache");Sweave("Hiiragi2013.Rnw", driver=cacheSweaveDriver());library(tools);texi2pdf("Hiiragi2013.tex")
 %\VignetteIndexEntry{Hiiragi2013}
 %\VignettePackage{Hiiragi2013}
 
@@ -59,8 +59,7 @@ BiocStyle::latex()
 \title{{\Large Executable Analysis Document Supporting:}\\
   \textbf{Cell-to-cell gene expression variability followed by reinforcement 
   progressively segregates lineages in the early mouse embryo}\\
-  {\Large Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej Ole\'s, 
-    Marcos J.~Ara\'uzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis and Takashi Hiiragi}}
+  {\Large Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej K.~Ole\'s, Marcos J.~Ara\'uzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis and Takashi Hiiragi}}
 
 \renewcommand{\thetitle}{Analysis report: Ohnishi et.~al., 2013} % short title used in headers
 \author{Authors of this document: Andrzej K.~Ole\'s, Wolfgang Huber}
@@ -396,7 +395,7 @@ for(i in seq(along=csa))
      main=names(sampleSets)[i], col=csa[[i]]$colours, pch=16, cex=1.5)
 @ 
 %
-\myincfig{figClue2}{\textwidth}{Cluster stability analysis with WT and FGF4-KO samples.}{Top 
+\myincfig{figClue2}{\textwidth}{Cluster stability analysis with E3.5/E4.5 WT and E4.5 FGF4-KO samples.}{Top 
   row: Results of the cluster stability analysis with the E3.5 (EPI), E3.5 (PE), E4.5
   (FGF4-KO) samples. Shown on the $y$-axis is the membership probability 
   in the three clusters. The actual group
@@ -412,17 +411,19 @@ indeed FGF4-KO E4.5 cells are distinct from either of the WT groups.
 \subsection{E3.25 WT and E3.5 FGF4-KO samples}\label{sec:clueko}
 %-----------------------------------------------------------
 
-On the PCA plot in Figure~\ref{figmds-2} dots representing FGF4
-KO  cells at E3.5 overlap with ones representig E3.25 WT. To examine whether they indeed cluster together we perform a cluster
-stability analysis analogous to that in the previous section.
-
+<<saveRandomSeed, cache=TRUE, echo=FALSE, results=hide>>=
+oldseed <- .Random.seed
+@
+%
+Although in the 2-dimensional PCA projection in Figure~\ref{figmds-2} dots representing FGF4-KO E3.5 cells appear to overlap with ones representing WT E3.25 samples, a cluster stability analysis analogous to that from the previous section indicates that they form a distinct population (Figure~\ref{figClue3}).
+%
 <<ce3,cache=TRUE>>=
 sampleSets = unlist(groups[c("E3.25", "E3.5 (FGF4-KO)")])
-resampledSampleSet = clusterResampling(x[!FGF4probes, sampleSets], ngenes=20)
-set.seed(2012)
+selSamples = x[!FGF4probes, sampleSets]
+resampledSampleSet = clusterResampling(selSamples, ngenes=20)
 @
-
-<<figClue3,fig=TRUE,width=8,height=6>>=
+%
+<<figClue3,fig=TRUE,width=6,height=3>>=
 par(mfrow=c(1,2))
   for(j in seq_len(2))
     plot(cl_membership(resampledSampleSet$consensus)[,j], 
@@ -430,8 +431,22 @@ par(mfrow=c(1,2))
 
 @ 
 %
-\myincfig{figClue3}{\textwidth}{Cluster stability analysis with WT and FGF4-KO samples.}{}
+\myincfig{figClue3}{.66\textwidth}{Cluster stability analysis with E3.25 WT and E3.5 FGF4-KO samples.}{Results of the cluster stability analysis with the E3.25 WT and E3.5 FGF4-KO samples. The $y$-axis shows the membership probability in the two clusters. The actual group membership of the samples (known but not used by the clustering algorithm) is indicated by the colours.}
 
+The cluster stability analysis of the two clusters indicates that the FGF4-KO samples at E3.5 form a single, tight cluster, and are consistently together throughout all of the resamplings. The E3.25 WT cells, on the other hand, are much more diffuse and in the course of the resampling, each cell does not necassaryly cluster together with the same cluster all the time.
+Therefore, the difference is prevalently one of variability---the E3.25 WT are quite variable and cover a large "expression space", whereas the FGF4-KO are stuck on one particular, narrowly defined expresion profile. This is also evident from the heatmap showed in Figure~\ref{figHeatmapClue}. 
+
+<<figHeatmapClue,fig=TRUE,width=8,height=12>>=
+ngenes = 100
+selFeats = order(rowVars(exprs(selSamples)), decreasing = TRUE)[seq_len(ngenes)]
+myHeatmap(selSamples[selFeats,], collapseDuplicateFeatures = TRUE, haveColDend = TRUE)
+  
+<<restoreRandomSeed, cache=TRUE, echo=FALSE, results=hide>>=
+.Random.seed <- oldseed
+@
+\myincfig{figHeatmapClue}{\textwidth}{Heatmap of the E3.25 WT and E3.5 FGF4-KO samples.}{Data of the 100 genes with the highest variance; the population of FGF4-KO samples clusters together.}
+
+Even though a few individual cells from E3.25 WT do indeed seem to have similar expression profiles as ones from E3.5 FGF4-KO, the populations are not the same.
 
 %----------------------------------------------------------
 \clearpage
@@ -727,8 +742,8 @@ xwte = xwt[, unlist(sp)]
 @
 Now we are ready to do it.
 <<doPCA2,cache=TRUE>>=
-thepca = prcomp(t(exprs(xwte)), center=TRUE)
-pcatrsf = function(x) (scale(t(exprs(x)), center=TRUE, scale=FALSE)  %*% thepca$rotation)
+thepca = prcomp(t(exprs(xwte)), center=TRUE, scale=TRUE)
+pcatrsf = function(x) (scale(t(exprs(x)), center=TRUE, scale=TRUE)  %*% thepca$rotation)
 stopifnot(all( abs(pcatrsf(xwte) - thepca$x) < 1e-6 ))
 <<myPCA>>=
 myPCAplot = function(x, labels, ...) {
