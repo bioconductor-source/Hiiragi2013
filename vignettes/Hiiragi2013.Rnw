@@ -5,13 +5,14 @@
 \documentclass[10pt,a4paper]{article}
 
 <<style, echo=FALSE, results=tex>>=
-BiocStyle::latex()
+BiocStyle::latex(short.fignames=TRUE)
 @ 
 
 \RequirePackage[usenames,dvipsnames]{color}
 \RequirePackage{graphicx}
 \RequirePackage{natbib}
 \RequirePackage{enumitem}
+\RequirePackage{afterpage}
 
 \RequirePackage{listings}
 \lstset{
@@ -32,19 +33,19 @@ BiocStyle::latex()
   showstringspaces=false
 }
 
-\renewcommand{\prefix}{\jobname}
-\newcommand{\myincfig}[4]{%
-  \begin{figure}[tbp]
-  \begin{center}
-  \includegraphics[width=#2]{\prefix-#1}
-  \caption[#3]{\label{#1}\textbf{#3} #4}
-  \end{center}
-  \end{figure}
-}
+% \renewcommand{\prefix}{\jobname}
+% \newcommand{\incfig}[4]{%
+%   \begin{figure}[tbp]
+%   \begin{center}
+%   \includegraphics[width=#2]{\prefix-#1}
+%   \caption[#3]{\label{#1}\textbf{#3} #4}
+%   \end{center}
+%   \end{figure}
+% }
 \newcommand{\myincheatmap}[5]{%
   \begin{figure}[tbp]
   \begin{center}
-  \includegraphics[width=#2\textwidth]{\prefix-#1}
+  \includegraphics[width=#2\textwidth]{\prefix#1}
   \caption[Heatmap of #3.]{\label{#1}\textbf{Heatmap of #3}. Data from #4 features with evidence of 
     differential expression between the two clusters are shown. #5.}
   \end{center}
@@ -61,7 +62,7 @@ BiocStyle::latex()
   progressively segregates lineages in the early mouse embryo}\\
   {\Large Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej K.~Ole\'s, Marcos J.~Ara\'uzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis and Takashi Hiiragi}}
 
-\renewcommand{\thetitle}{Analysis report: Ohnishi et.~al., 2013} % short title used in headers
+\renewcommand{\thetitle}{Analysis report: Ohnishi et al., 2013} % short title used in headers
 \author{Authors of this document: Andrzej K.~Ole\'s, Wolfgang Huber}
 
 \maketitle
@@ -78,7 +79,7 @@ We first load the required R packages.
 %
 <<packages, results=hide>>=
 library("Hiiragi2013")
-set.seed(2012)
+set.seed(2013)
 options(error=recover)
 @
 %
@@ -165,7 +166,6 @@ stopifnot(sum(FGF4probes)==4)
 
 
 %--------------------------------------------------
-\clearpage
 \section{How many genes are expressed?}
 %--------------------------------------------------
 In this section, we aim to determine how many distinct mRNAs were detected by the arrays
@@ -199,7 +199,7 @@ hist(sdxe, 100, col="skyblue")
 abline(v=thresh)
 @ 
 %
-\myincfig{figHistSds}{0.5\textwidth}{Histogram of
+\incfig{figHistSds}{0.5\textwidth}{Histogram of
 standard deviation of each probe set's signal}{across the \Sexpr{ncol(xe)} samples.}
 Based on the (visually) chosen threshold\footnote{One could also come up with a more
   automated, ``statistical'' rule, but the downstream result would be very similar.} \Robject{thresh},
@@ -257,7 +257,7 @@ barplot2(numCalls, names.arg=paste(seq_len(ncol(callsPerGenePerArray))),
 @ 
 %
 See Figure~\ref{figmas5calls}.
-\myincfig{figmas5calls}{\textwidth}{Present/absent calls.}{The barplot shows, for each of the
+\incfig{figmas5calls}{\textwidth}{Present/absent calls.}{The barplot shows, for each of the
   \Sexpr{ncol(mas5c)} arrays, the number of genes targeted by probe sets with "A" (light
   grey), "M" (light blue) and "P" (blue) calls. 
   The \Sexpr{ncol(mas5c)+1}-th bar at the very right corresponds to detection in at least
@@ -265,7 +265,6 @@ See Figure~\ref{figmas5calls}.
 
 
 %----------------------------------------------------------
-\clearpage
 \section{Cluster stability analysis}
 \subsection{E3.25 and E3.5 WT samples}\label{sec:cluewt}
 %-----------------------------------------------------------
@@ -345,7 +344,7 @@ plot(unlist(lapply(mgrp, myjitter)), unlist(mems),
 text(x=1:2, y=par("usr")[3], labels=c("E3.25","E3.5"), adj=c(0.5, 1.4), xpd=NA)
 @
 %
-\myincfig{figClue1}{\textwidth}{Cluster stability analysis.}{Left:
+\incfig{figClue1}{0.8\textwidth}{Cluster stability analysis.}{Left:
   boxplot of the cluster agreements  with the consensus, for the
   \Robject{B}=\Sexpr{formals(clusterResampling)$B}
   clusterings; 1 indicates perfect agreement, and
@@ -395,7 +394,7 @@ for(i in seq(along=csa))
      main=names(sampleSets)[i], col=csa[[i]]$colours, pch=16, cex=1.5)
 @ 
 %
-\myincfig{figClue2}{\textwidth}{Cluster stability analysis with E3.5/E4.5 WT and E4.5 FGF4-KO samples.}{Top 
+\incfig[{figClue2}{\textwidth}{Cluster stability analysis with E3.5/E4.5 WT and E4.5 FGF4-KO samples.}{Top 
   row: Results of the cluster stability analysis with the E3.5 (EPI), E3.5 (PE), E4.5
   (FGF4-KO) samples. Shown on the $y$-axis is the membership probability 
   in the three clusters. The actual group
@@ -408,11 +407,12 @@ The results of the above code are shown in Figure~\ref{figClue2} and indicate th
 indeed FGF4-KO E4.5 cells are distinct from either of the WT groups.
 
 %-----------------------------------------------------------
+%\afterpage{\clearpage}
 \subsection{E3.25 WT and E3.5 FGF4-KO samples}\label{sec:clueko}
 %-----------------------------------------------------------
 
 <<saveRandomSeed, cache=TRUE, echo=FALSE, results=hide>>=
-oldseed <- .Random.seed
+#oldseed <- .Random.seed
 @
 %
 Although in the 2-dimensional PCA projection in Figure~\ref{figmds-2} dots representing FGF4-KO E3.5 cells appear to overlap with ones representing WT E3.25 samples, a cluster stability analysis analogous to that from the previous section indicates that they form a distinct population (Figure~\ref{figClue3}).
@@ -423,33 +423,32 @@ selSamples = x[!FGF4probes, sampleSets]
 resampledSampleSet = clusterResampling(selSamples, ngenes=20)
 @
 %
-<<figClue3,fig=TRUE,width=6,height=3>>=
+<<figClue3,fig=TRUE,width=8,height=4.5>>=
 par(mfrow=c(1,2))
   for(j in seq_len(2))
     plot(cl_membership(resampledSampleSet$consensus)[,j], 
-     ylab=paste0("P(cluster ", j, ")"), xlab="Samples", col=x$sampleColour[sampleSets], pch=16, cex=1.5)
+     ylab=paste0("P(cluster ", j, ")"), xlab="Samples", col=x$sampleColour[sampleSets], pch=16)
 
 @ 
 %
-\myincfig{figClue3}{.66\textwidth}{Cluster stability analysis with E3.25 WT and E3.5 FGF4-KO samples.}{Results of the cluster stability analysis with the E3.25 WT and E3.5 FGF4-KO samples. The $y$-axis shows the membership probability in the two clusters. The actual group membership of the samples (known but not used by the clustering algorithm) is indicated by the colours.}
+\incfig[b!]{figClue3}{.66\textwidth}{Cluster stability analysis with E3.25 WT and E3.5 FGF4-KO samples.}{Results of the cluster stability analysis with the E3.25 WT and E3.5 FGF4-KO samples. The $y$-axis shows the membership probability in the two clusters. The actual group membership of the samples (known but not used by the clustering algorithm) is indicated by the colours.}
 
 The cluster stability analysis of the two clusters indicates that the FGF4-KO samples at E3.5 form a single, tight cluster, and are consistently together throughout all of the resamplings. The E3.25 WT cells, on the other hand, are much more diffuse and in the course of the resampling, each cell does not necassaryly cluster together with the same cluster all the time.
 Therefore, the difference is prevalently one of variability---the E3.25 WT are quite variable and cover a large "expression space", whereas the FGF4-KO are stuck on one particular, narrowly defined expresion profile. This is also evident from the heatmap showed in Figure~\ref{figHeatmapClue}. 
 
-<<figHeatmapClue,fig=TRUE,width=8,height=12>>=
+<<figHeatmapClue,fig=TRUE,width=10,height=13>>=
 ngenes = 100
 selFeats = order(rowVars(exprs(selSamples)), decreasing = TRUE)[seq_len(ngenes)]
 myHeatmap(selSamples[selFeats,], collapseDuplicateFeatures = TRUE, haveColDend = TRUE)
   
 <<restoreRandomSeed, cache=TRUE, echo=FALSE, results=hide>>=
-.Random.seed <- oldseed
+#.Random.seed <- oldseed
 @
-\myincfig{figHeatmapClue}{\textwidth}{Heatmap of the E3.25 WT and E3.5 FGF4-KO samples.}{Data of the 100 genes with the highest variance; the population of FGF4-KO samples clusters together.}
+\incfig{figHeatmapClue}{\textwidth}{Heatmap of the E3.25 WT and E3.5 FGF4-KO samples.}{Data of the 100 genes with the highest variance. Even though a few individual cells from E3.25 WT do indeed seem to have similar expression profiles as ones from E3.5 FGF4-KO, which all cluster together, the populations are not the same.}
 
-Even though a few individual cells from E3.25 WT do indeed seem to have similar expression profiles as ones from E3.5 FGF4-KO, the populations are not the same.
+
 
 %----------------------------------------------------------
-\clearpage
 \section{Lineage Markers}
 \label{sec:unsuper}
 %-----------------------------------------------------------
@@ -494,7 +493,7 @@ image(x=seq_len(nrow(clusters)),
 text(x=0, y=seq_len(ncol(clusters)), paste(ngenes), xpd=NA, adj=c(1, 0.5))
 @
 %
-\myincfig{figClusters}{0.5\textwidth}{The influence of the
+\incfig{figClusters}{0.5\textwidth}{The influence of the
   parameter \Robject{ngenes} on the clustering result.}{Each of the 22
   samples corresponds to a column of the matrix, the rows of the
   matrix correspond to different choices for
@@ -550,7 +549,7 @@ smallpValue=1e-4
 abline(v=nFilt, col="blue")
 abline(h=smallpValue, col="orange")
 @
-\myincfig{figIndepFiltSetup}{0.5\textwidth}{Determination of the cutoff for independent
+\incfig{figIndepFiltSetup}{0.5\textwidth}{Determination of the cutoff for independent
   filtering.}{Each dot corresponds to one of the \Sexpr{nrow(xForClustering)} features on the array, the $x$-axis
   shows the rank of the features overall variance across the  \Sexpr{ncol(xForClustering)} arrays in
   \Robject{xForClustering}, the $y$-axis the $p$-value from the $t$-test on a logarithmic scale.
@@ -596,20 +595,20 @@ To visualise the data, we use the helper function
 The heatmaps produced by the function calls below are shown in
 Figures~\ref{figHeatmapAll}--\ref{figHeatmap35Coll}.
 %
-<<figHeatmapAll, fig=TRUE, width=13, height=14>>=
+<<figHeatmapAll, fig=TRUE, width=16, height=22>>=
 myHeatmap(x[differentially, x$genotype=="WT"])
-<<figHeatmapAllColl, fig=TRUE, width=13, height=12>>=
+<<figHeatmapAllColl, fig=TRUE, width=14, height=19>>=
 myHeatmap(x[differentially, x$genotype=="WT"], collapseDuplicateFeatures=TRUE)
-<<figHeatmap35, fig=TRUE, width=7, height=14>>=
+<<figHeatmap35, fig=TRUE, width=10, height=22>>=
 myHeatmap(xForClustering[differentially,])
-<<figHeatmap35Coll, fig=TRUE, width=7, height=12>>=
+<<figHeatmap35Coll, fig=TRUE, width=8, height=18>>=
 myHeatmap(xForClustering[differentially,], collapseDuplicateFeatures=TRUE)
 @
 
 \myincheatmap{figHeatmapAll}{1}{all WT arrays}{\Sexpr{length(differentially)}}{For some genes, multiple features are shown}
 \myincheatmap{figHeatmapAllColl}{1}{all WT arrays}{\Sexpr{length(differentially)}}{Duplicate features per gene were averaged}
-\myincheatmap{figHeatmap35}{0.7}{only the WT arrays from E3.5}{\Sexpr{length(differentially)}}{For some genes, multiple features are shown}
-\myincheatmap{figHeatmap35Coll}{0.7}{only the WT arrays from E3.5}{\Sexpr{length(differentially)}}{Duplicate features per gene were averaged}
+\myincheatmap{figHeatmap35}{0.6}{only the WT arrays from E3.5}{\Sexpr{length(differentially)}}{For some genes, multiple features are shown}
+\myincheatmap{figHeatmap35Coll}{0.6}{only the WT arrays from E3.5}{\Sexpr{length(differentially)}}{Duplicate features per gene were averaged}
 
 %-----------------------------------------------------------------
 \subsection{Differentially expressed genes E4.5}
@@ -627,7 +626,7 @@ abline(v=nFilt, col="blue")
 abline(h=smallpValue, col="orange")
 @
 See Figure~\ref{figIF45}.
-\myincfig{figIF45}{0.5\textwidth}{Determination of the cutoff for independent
+\incfig{figIF45}{0.5\textwidth}{Determination of the cutoff for independent
   filtering.}{Analogous to Figure~\ref{figIndepFiltSetup}, but for E4.5.}
 <<BH45>>=
 passfilter = which(varianceRank<=nFilt)
@@ -673,11 +672,11 @@ samples = unlist(groups[c("E3.25", "E3.5 (EPI)", "E3.5 (PE)")])
 deE325toE35 = union(
   getDifferentialExpressedGenes(x, groups, "E3.25", "E3.5 (EPI)"),
   getDifferentialExpressedGenes(x, groups, "E3.25", "E3.5 (PE)"))
-<<figdifferentiallyE325toE35, width=8, height=25, fig=TRUE>>=
+<<figdifferentiallyE325toE35, width=8, height=24, fig=TRUE>>=
 myHeatmap(x[deE325toE35, samples], collapseDuplicateFeatures=TRUE)
 @
 %
-\myincfig{figdifferentiallyE325toE35}{7.5cm}{Heatmap of
+\incfig{figdifferentiallyE325toE35}{7.5cm}{Heatmap of
   differentially expressed genes from E3.25 to E3.5 (EPI), and from
   E3.25 to E3.5 (PE).}{A
   standalone PDF file with this figure is also available, under the name
@@ -699,7 +698,7 @@ plotProjection(projection,
     colourMap = sampleColourMap)
 @
 %
-\myincfig{figProjection}{8cm}{Projection of sample expression profiles on
+\incfig{figProjection}{8cm}{Projection of sample expression profiles on
 the differential expression signature from Section~\ref{sec:unsuper}.}{Expression
 profiles and signature are each vectors of length \Sexpr{length(differentially)},
 and shown is the scalar product between each sample's expression profile for
@@ -742,8 +741,8 @@ xwte = xwt[, unlist(sp)]
 @
 Now we are ready to do it.
 <<doPCA2,cache=TRUE>>=
-thepca = prcomp(t(exprs(xwte)), center=TRUE, scale=TRUE)
-pcatrsf = function(x) (scale(t(exprs(x)), center=TRUE, scale=TRUE)  %*% thepca$rotation)
+thepca = prcomp(t(exprs(xwte)), center=TRUE)
+pcatrsf = function(x) (scale(t(exprs(x)), center=TRUE, scale=FALSE)  %*% thepca$rotation)
 stopifnot(all( abs(pcatrsf(xwte) - thepca$x) < 1e-6 ))
 <<myPCA>>=
 myPCAplot = function(x, labels, ...) {
@@ -761,9 +760,9 @@ loadings of the PCA components (Figure~\ref{figpcaloadings}) and the 20 most
 important genes (10 with highest positive coefficients and 10 with the highest negative
 coefficients) in the R output below.
 %
-\myincfig{figmds-1}{.6\textwidth}{PCA plot, using WT samples.}{The colour code is as in
+\incfig{figmds-1}{.6\textwidth}{PCA plot, using WT samples.}{The colour code is as in
   Figure~\ref{figProjection}.}
-\myincfig{figpcaloadings}{\textwidth}{Sorted loadings (coefficients) of the first two
+\incfig{figpcaloadings}{\textwidth}{Sorted loadings (coefficients) of the first two
   PCA vectors.}{The most important genes are shown in the text.}
 %
 <<figpcaloadings,fig=TRUE, width=8, height=4>>=
@@ -795,7 +794,7 @@ g = safeSelect(c("E3.25",
 myPCAplot(x[selectedFeatures, ])
 @
 See Figure~\ref{figmds-2}.
-\myincfig{figmds-2}{.6\textwidth}{PCA
+\incfig{figmds-2}{.6\textwidth}{PCA
   plot for WT and FGF4-KO samples.}{The
   colour code is as in Figure~\ref{figProjection}.}
 %
@@ -803,14 +802,14 @@ See Figure~\ref{figmds-2}.
 myPCAplot(x[selectedFeatures, ], labels=paste(seq_len(ncol(x))))
 @
 See Figure~\ref{figmds-3}.
-\myincfig{figmds-3}{\textwidth}{Same as Figure~\ref{figmds-2}, with labels
+\incfig{figmds-3}{\textwidth}{Same as Figure~\ref{figmds-2}, with labels
   indicating the array (sample) number.}{This may be useful to detect outlier arrays.}
 %
 <<figmds-4, fig=TRUE, width=5, height=5, results=hide>>=
 myPCAplot(x[selectedFeatures, ], labels=paste(x$Total.number.of.cells))
 @
 See Figure~\ref{figmds-4}.
-\myincfig{figmds-4}{\textwidth}{Same as Figure~\ref{figmds-2}, with labels
+\incfig{figmds-4}{\textwidth}{Same as Figure~\ref{figmds-2}, with labels
   indicating \Robject{Total.number.of.cells}.}{This may be useful to detect ``batch effects''.}
 
 %--------------------------------------------------------------
@@ -826,7 +825,7 @@ heatmap.2(mat, trace="none", dendrogram="none", scale="row",
 @
 
 See Figure~\ref{fighmko}.
-\myincfig{fighmko}{\textwidth}{Heatmap.}{The
+\incfig{fighmko}{\textwidth}{Heatmap.}{The
   colour code of the bar at the top is as in Figure~\ref{figProjection}.}
 
 %----------------------------------------------------------------
@@ -856,7 +855,7 @@ points(seq_len(nrow(py)), rep(par("usr")[3]+0.2, nrow(py)),
        pch=16, col=x325$sampleColour)
 @
 %
-\myincfig{figFGF4expression}{\textwidth}{FGF4 expression.}{The
+\incfig{figFGF4expression}{\textwidth}{FGF4 expression.}{The
   plot shows data from the
   \Sexpr{sum(FGF4probes)} features on the microarray annotated to
   FGF4. From these data, we conclude that \texttt{1420085\_at} and
@@ -888,7 +887,7 @@ plot(x = jitter(as.integer(fgf4Genotype)),
 cm = sampleColourMap[sampleColourMap %in% x325$sampleColour]
 legend("topright", legend = names(cm), fill = cm)
 @
-\myincfig{figFGF4jitter}{0.6\textwidth}{FGF4 expression (microarray signal) in WT and KO samples.}{}
+\incfig{figFGF4jitter}{0.6\textwidth}{FGF4 expression (microarray signal) in WT and KO samples.}{}
 
 %----------------------------------------------------------------
 \subsection{In E3.25, are the WT samples with low FGF4 expression more
@@ -916,8 +915,8 @@ image(z = rbind(seq(along=atColour)), col=colourBar(atColour),
 @
 %
 \begin{figure}\begin{center}
-\includegraphics[width=.5\textwidth]{\prefix-figFgf4MDS}
-\includegraphics[width=2.5cm]{\prefix-figFgf4MDSColourBar}
+\includegraphics[width=.5\textwidth]{\prefix{figFgf4MDS}}
+\includegraphics[width=2.5cm]{\prefix{figFgf4MDSColourBar}}
 \caption[MDS plot of the E3.25 wild type and FGF4-KO samples.]{\label{figFgf4MDS}
   \textbf{MDS plot of the E3.25 wild type
   (yellow--blue) and FGF4-KO (orange) samples.}  The yellow--blue colour
@@ -946,7 +945,7 @@ plot(fgf4Expression[wt325], dists, pch=16, main="E3.25 WT samples",
      xlab="FGF4 expression", ylab="Distance to FGF4-KO", col=colours)
 @
 %
-\myincfig{figCorFgf4Dist}{0.6\textwidth}{Relationship between
+\incfig{figCorFgf4Dist}{0.6\textwidth}{Relationship between
   FGF4 expression and similarity of the transcription profile to the KO.}{FGF4
   expression of each sample is shown along the $x$-axis, the
   $y$-axis corresponds to the distance to the mean FGF4-KO expression profile
@@ -1003,7 +1002,7 @@ text(x = as.integer(unique(varGroupX)),
      y = par("usr")[3], srt = 90, adj = c(1,0.5), xpd = NA)
 @
 %
-\myincfig{figFGF4variab}{0.6\textwidth}{Variability of different groups of
+\incfig{figFGF4variab}{0.6\textwidth}{Variability of different groups of
   samples.}{The groups were defined by \Robject{sampleGroup} and \Robject{ScanDate} (see
   definition of \Robject{varGroups} above). Variability was measured by the \emph{median}
   (across the \Sexpr{length(sel)} top variable genes) of the \emph{median absolute
@@ -1048,9 +1047,9 @@ for(n in c(100, 1000)) {
 }
 @
 %
-\myincfig{figNumberOfCells-100}{\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
+\incfig{figNumberOfCells-100}{\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
   {The 100 features with highest overall variance were used.}
-\myincfig{figNumberOfCells-1000}{\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
+\incfig{figNumberOfCells-1000}{\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
   {The 1000 features with highest overall variance were used.}
 
 %--------------------------------------------------
@@ -1072,7 +1071,7 @@ myHeatmap(xKO[selectedFeatures, ],
 stopifnot("Fgf4" %in% fData(xKO)$symbol[selectedFeatures])
 @
 %
-\myincfig{figHeatmapKO}{\textwidth}{Heatmap of all arrays from groups
+\incfig{figHeatmapKO}{\textwidth}{Heatmap of all arrays from groups
   \Sexpr{paste(selectedGroups, collapse=", ")}.}{The
   \Sexpr{length(selectedFeatures)} features with highest overall
   variance were used. One of them shows Fgf4.}
@@ -1110,7 +1109,7 @@ for(i in seq(along=de)) {
 }
 @
 %
-\myincfig{figIndepFiltDeWtKo}{\textwidth}{Differentially expressed genes between
+\incfig{figIndepFiltDeWtKo}{\textwidth}{Differentially expressed genes between
   FGF4-KO and WT (\Sexpr{paste(names(de), collapse=", ")}) at E3.5.}{The upper panels show
   the histograms of $p$-values, middle panels the scatter plots of rank of overall
   variance (\Robject{rkv}) versus $-\log_{10} p$, lower panels $log_2$ fold-change versus
@@ -1134,7 +1133,7 @@ plot(de$PE$dm, de$EPI$dm, pch=16, asp=1,
 @ 
 %
 See Figure~\ref{fig2DWTKO}.
-\myincfig{fig2DWTKO}{0.5\textwidth}{Differentially expressed genes between
+\incfig{fig2DWTKO}{0.5\textwidth}{Differentially expressed genes between
   FGF4-KO and WT (\Sexpr{paste(names(de), collapse=", ")}) at E3.5.}{Shown is a
   scatterplot of the average fold changes for both comparisons. Large values along the
   $x$-axis indicate a relatively higher level of expression in E3.5 (FGF4-KO) compared to
@@ -1159,7 +1158,7 @@ stopifnot(sum(FGF4probes)==4)
 @ 
 %
 See Figure~\ref{figFGF4ProbesInKO}.
-\myincfig{figFGF4ProbesInKO}{\textwidth}{The probes for FGF4.}{As expected, the signal
+\incfig{figFGF4ProbesInKO}{\textwidth}{The probes for FGF4.}{As expected, the signal
   from these probes in the KO samples is consistent with background.}
 
 \subsubsection{Behaviour of the control probes} 
@@ -1175,7 +1174,7 @@ for(p in ctrls[1:8])
        main=p, ylab=expression(log[2]~expression)) 
 @ 
 %
-\myincfig{figCtrls}{\textwidth}{Behaviour of some control probe sets.}{}
+\incfig{figCtrls}{\textwidth}{Behaviour of some control probe sets.}{}
 
 %--------------------------------------------------
 \subsubsection{Gene set enrichment analysis}
@@ -1288,7 +1287,7 @@ for(i in seq(along=pws)) {
             main=paste(df$name[i], enr, sep="\n"), xlab="mean difference between FGF4-KO and wildtype samples" )
 }
 @ 
-\myincfig{figShowPws}{\textwidth}{Differentially expressed genes between
+\incfig{figShowPws}{\textwidth}{Differentially expressed genes between
   FGF4-KO and WT (\Sexpr{paste(names(de), collapse=", ")}) at E3.5.}{}
 
 
@@ -1406,7 +1405,7 @@ for(i in seq(along=numberFeatures)) {
 }
 @
 %
-\myincfig{fig-JSD}{\textwidth}{Jensen-Shannon divergences}{JSD is
+\incfig{fig-JSD}{\textwidth}{Jensen-Shannon divergences}{JSD is
   shown on the left; on the right, for comparison we performed the same
   analysis with \emph{within-group standard deviation} as another
   measure of group spread.}
@@ -1507,7 +1506,7 @@ for(i in seq_len(nrow(exemplaryGenes)))
 %
 The output is shown in Figure~\ref{fig-ExemplaryGenes}, which we
 can compare to Figure~\ref{FigTemporalChangeLineageMarkerExp}.
-\myincfig{fig-ExemplaryGenes}{\textwidth}{Boxplots of the
+\incfig{fig-ExemplaryGenes}{\textwidth}{Boxplots of the
   microarray expression data for exemplary genes.}{Compare this to
   Figure~\ref{FigTemporalChangeLineageMarkerExp}. The agreement is
   satisfactory.}
@@ -1622,7 +1621,7 @@ myHeatmap2(mat, keeprownames=TRUE,
      colGroups=factor(rep(seq(along=agr), listLen(agr))))
 @ 
 %
-\myincfig{figHeatmapthclasses}{9.5cm}{Heatmap of all classes}{of
+\incfig{figHeatmapthclasses}{9.5cm}{Heatmap of all classes}{of
   the [0,1]-scaled data matrix \Robject{xsc}. From left
   to right, the \Sexpr{length(agr)} blocks correspond to the
   conditions \Sexpr{paste(names(agr), collapse=', ')}. From bottom to top, 
@@ -1695,7 +1694,7 @@ myHeatmap3(xq)
 @ 
 %
 See Figure~\ref{fighm1}.
-\myincfig{fighm1}{\textwidth}{Heatmap of the qPCR data set.}{
+\incfig{fighm1}{\textwidth}{Heatmap of the qPCR data set.}{
   The data are shown on the logarithmic (base 10) scale. Before transformation, values $<1$ were set to 1.
   The colour code of the bar at the top is as in Figure~\ref{figProjection}.}
 
@@ -1709,7 +1708,7 @@ stopifnot(length(selectedGenes)==7)
 @ 
 %
 See Figure~\ref{fighm2}.
-\myincfig{fighm2}{\textwidth}{Heatmap of the qPCR data for the 7 selected genes.}{}
+\incfig{fighm2}{\textwidth}{Heatmap of the qPCR data for the 7 selected genes.}{}
  
 <<selectedPE>>=
 selectedSamples = (xq$Cell.type %in% c("ICM", "PE"))
@@ -1723,11 +1722,11 @@ stopifnot(!any(is.na(sxq$fsampleGroup)))
 myHeatmap3(sxq)
 @ 
 See Figure~\ref{fighm3}.
-\myincfig{fighm3}{\textwidth}{Heatmap for the 7 selected genes and the
+\incfig{fighm3}{\textwidth}{Heatmap for the 7 selected genes and the
   samples \Sexpr{paste(sort(unique(xq$sampleGroup[selectedSamples])), collapse=",")}.}{Rows and columns are ordered by clustering dendrogram.}
 
 \subsection{Distribution of the data and discretisation}\label{sec:disc}
-\myincfig{figthr}{\textwidth}{Visualisation of the qPCR data for the seven
+\incfig{figthr}{\textwidth}{Visualisation of the qPCR data for the seven
   genes.}{Shown are also the within-group means (horizontal dotted light grey lines) and the
   discretisation thresholds (horizontal solid dark grey lines).}
 The qPCR expression levels in \Robject{sxq} are compared, separately for each gene,
@@ -1778,7 +1777,7 @@ sxqd = discretize(sxq)
 myHeatmap3(sxqd, log=FALSE, Colv=FALSE, Rowv=FALSE, key=FALSE, ncol=3)
 @ 
 %
-\myincfig{fighmd}{\textwidth}{Heatmap for the discretized values.}{Rows and
+\incfig{fighmd}{\textwidth}{Heatmap for the discretized values.}{Rows and
   colums are in the original order.}
 
 \clearpage
@@ -1882,7 +1881,7 @@ t.test(x=bopt[[1]]$t, y=bopt[[2]]$t)
 @ 
 %
 See Figure~\ref{figboot}.
-\myincfig{figboot}{.6\textwidth}{Distribution of bootstrap-resampled optimal
+\incfig{figboot}{.6\textwidth}{Distribution of bootstrap-resampled optimal
   costs ("disorder penalties").}{Shown are the empirical distribution function of the
   bootstrap-sampled cost functions for the two situations. The values for
   \Sexpr{names(costs)[2]} are significantly smaller (see also $t$-test result in the main text).}
@@ -1912,13 +1911,13 @@ xql$sampleColours = labeledSampleColours
 md = isoMDS( dist(t(log(exprs(xql),2))))$points
 plot(md, col=xql$sampleColours, pch=16, asp=1, xlab="",ylab="")
 @
-\myincfig{mdsplot}{.6\textwidth}{MDS plot}
+\incfig{mdsplot}{.6\textwidth}{MDS plot}
 
 
 \section{Correlation between Fgf ligands and Fgf receptors}
 
 Figure~\ref{figure5b} was produced using the following code. 
-<<figure5b,width=10,height=2.5,fig=TRUE>>=
+<<figure5b,width=10,height=3,fig=TRUE>>=
 xs = x[, (x$genotype %in% "WT") & (x$Embryonic.day %in% c("E3.25","E3.5","E4.5"))]
 
 Fgf3 = c("1441914_x_at")
@@ -1942,7 +1941,7 @@ correlationPlot(c(Fgf3,Fgfr3))
 correlationPlot(c(Fgf3,Fgfr4))
 @ 
 %
-\myincfig{figure5b}{\textwidth}{Figure 5b}
+\incfig{figure5b}{\textwidth}{Figure 5b}
 
 
 %---------------------------------------------------------

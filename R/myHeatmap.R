@@ -16,9 +16,10 @@ function(x, collapseDuplicateFeatures=FALSE, haveColDend=FALSE) {
 
   print(levelplot(mat[roword, colord],
           aspect = "fill", xlab="", ylab="",
-          scales = list(x = list(rot = 90), raster=TRUE),
+          scales = list(x = list(rot = 90), raster=TRUE, cex=0.6),
           col.regions = bluered(100),
           colorkey = list(space = "left", height=0.15, useRaster=TRUE),
+          cex = 0.5,
           legend = if(haveColDend)
             list(top = list(fun = dendrogramGrob,
                             args = list(x = rowdd,
