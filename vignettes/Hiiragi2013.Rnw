@@ -33,15 +33,6 @@ BiocStyle::latex(short.fignames=TRUE)
   showstringspaces=false
 }
 
-% \renewcommand{\prefix}{\jobname}
-% \newcommand{\incfig}[4]{%
-%   \begin{figure}[tbp]
-%   \begin{center}
-%   \includegraphics[width=#2]{\prefix-#1}
-%   \caption[#3]{\label{#1}\textbf{#3} #4}
-%   \end{center}
-%   \end{figure}
-% }
 \newcommand{\myincheatmap}[5]{%
   \begin{figure}[tbp]
   \begin{center}
@@ -58,8 +49,7 @@ BiocStyle::latex(short.fignames=TRUE)
 \begin{document}
 
 \title{{\Large Executable Analysis Document Supporting:}\\
-  \textbf{Cell-to-cell gene expression variability followed by reinforcement 
-  progressively segregates lineages in the early mouse embryo}\\
+  \textbf{Cell-to-cell expression variability followed by signal reinforcement progressively segregates early mouse lineages}\\
   {\Large Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej K.~Ole\'s, Marcos J.~Ara\'uzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis and Takashi Hiiragi}}
 
 \renewcommand{\thetitle}{Analysis report: Ohnishi et al., 2013} % short title used in headers
@@ -87,20 +77,24 @@ The array data consist of a set of CEL files (the output from the Affymetrix sca
 / image analysis software), whose annotation is provided in an Excel table. The import of
 these data and metadata is performed by the script \texttt{readdata.R}, whose code is shown on
 page~\pageref{readdata} and following. This script also performs
-data preprocessing (``normalisation'') by the RMA
+data preprocessing (``normalisation'') using the RMA
 method~\cite{IrizarryAffy} and arranges the metadata to support the
 analyses presented in the following. Let us load the result of
 \texttt{readdata.R}.
 %
 <<loadx>>=
 data("x")
+x
 @
 %
-\texttt{x} is an \emph{\Sexpr{class(x)}} object that contains the
-normalized data for the \Sexpr{ncol(x)} arrays.
-<<showx>>=
+\texttt{x} is an \emph{\Sexpr{class(x)}} object containing the
+normalized data for the \Sexpr{ncol(x)} arrays. These include \Sexpr{nrow(subset(pData(x), genotype=="WT"))} wild type (WT) samples
+<<showWT>>=
 with(subset(pData(x), genotype=="WT"),
      addmargins(table(Embryonic.day, Total.number.of.cells), 2))
+@
+and \Sexpr{nrow(subset(pData(x), genotype=="FGF4-KO"))} FGF4-KO mutants
+<<showFGF4KO>>=
 with(subset(pData(x), genotype=="FGF4-KO"),
      table(Embryonic.day))
 @
@@ -362,7 +356,7 @@ wilcox.test(ce$E3.25$agreements, ce$E3.5$agreements)
 @
 
 %-----------------------------------------------------------
-\subsection{E3.5 / E4.5 WT and E4.5 FGF4-KO samples}\label{sec:clueko}
+\subsection{E3.5/E4.5 WT and E4.5 FGF4-KO samples}\label{sec:clueko}
 %-----------------------------------------------------------
 From the PCA plot in Figure~\ref{figmds-2}, one might derive the impression that the FGF4
 KO E4.5 cells cluster together with the EPI E3.5 cells.  Here, we perform a cluster
@@ -394,7 +388,7 @@ for(i in seq(along=csa))
      main=names(sampleSets)[i], col=csa[[i]]$colours, pch=16, cex=1.5)
 @ 
 %
-\incfig[{figClue2}{\textwidth}{Cluster stability analysis with E3.5/E4.5 WT and E4.5 FGF4-KO samples.}{Top 
+\incfig{figClue2}{\textwidth}{Cluster stability analysis with E3.5/E4.5 WT and E4.5 FGF4-KO samples.}{Top 
   row: Results of the cluster stability analysis with the E3.5 (EPI), E3.5 (PE), E4.5
   (FGF4-KO) samples. Shown on the $y$-axis is the membership probability 
   in the three clusters. The actual group
@@ -582,7 +576,7 @@ and these correspond to \Sexpr{length(unique(fData(x)$symbol[differentially]))} 
 In the following code chunk, we write out a CSV file with the results table.
 %
 <<write.csv>>=
-deFeat35 = cbind(deCluster[differentially, ], `FDR-adjusted p value`=adjp[differentially], 
+deFeat35 = cbind(deCluster[differentially, ], `FDR-adjusted p-value`=adjp[differentially], 
                  fData(x)[differentially, ])
 write.csv(deFeat35, file="differentially-expressed-features-3.5.csv")
 @
@@ -645,7 +639,7 @@ and these correspond to \Sexpr{length(unique(fData(x)$symbol[differentially]))} 
 In the following code chunk, we write out a CSV file with the results table.
 %
 <<write.csv>>=
-deFeat45 = cbind(de45[differentially, ], `FDR-adjusted p value`=adjp[differentially], 
+deFeat45 = cbind(de45[differentially, ], `FDR-adjusted p-value`=adjp[differentially], 
                  fData(x)[differentially, ])
 write.csv(deFeat45, file="differentially-expressed-features-4.5.csv")
 @
@@ -1888,9 +1882,9 @@ See Figure~\ref{figboot}.
 
 \appendix
 
-\section{MDS plot}
+\section{Influence of cell position on gene expression}
 
-The MDS plot in Fig.~\ref{mdsplot} was produced using the following code. 
+To examine how cell position within the embryo influences its gene expression, cells lying on the surface of the ICM facing the blastocyst cavity were fluorescently labelled and expression profiled versus those located deeper within the ICM. We then used multi-dimensional scaling to compare the labelled and non-labelled cells at E3.5 and E4.5, based on the expression of 10 highly variable genes, as identified from the E3.5 and 4.5 microarray data, and quantified by single-cell qPCR measurements. The result of this analysis is show in Figure~\ref{mdsplot}.
 
 <<mdsplot,width=5,height=5,fig=TRUE,results=hide>>=
 data("xql")
@@ -1911,12 +1905,13 @@ xql$sampleColours = labeledSampleColours
 md = isoMDS( dist(t(log(exprs(xql),2))))$points
 plot(md, col=xql$sampleColours, pch=16, asp=1, xlab="",ylab="")
 @
-\incfig{mdsplot}{.6\textwidth}{MDS plot}
+\incfig{mdsplot}{.6\textwidth}{Multi-dimensional scaling plot.}{Light red and light green dots represent E3.5 labeled and unlabeled cells, while red and green ones represent E4.5 labeled and unlabeled cells, respectively.}
 
 
 \section{Correlation between Fgf ligands and Fgf receptors}
 
-Figure~\ref{figure5b} was produced using the following code. 
+Several Fgf ligands (Fgf3, 4 and 13) and all Fgf receptors (Fgfr1-4) were found to be differentially expressed within the ICM, thus possibly contributing to the EPI versus PrE lineage segregation. We have found that a statistically significant correlation (positive or negative) in gene expression levels is discernible at single cell level for Fgf4 against Fgfr2, Fgf4 against Fgfr3, Fgf3 with Fgfr3, and Fgf3 with Fgfr4 at E3.5 and E4.5 (Figure \ref{figure5b}).
+
 <<figure5b,width=10,height=3,fig=TRUE>>=
 xs = x[, (x$genotype %in% "WT") & (x$Embryonic.day %in% c("E3.25","E3.5","E4.5"))]
 
@@ -1941,7 +1936,7 @@ correlationPlot(c(Fgf3,Fgfr3))
 correlationPlot(c(Fgf3,Fgfr4))
 @ 
 %
-\incfig{figure5b}{\textwidth}{Figure 5b}
+\incfig{figure5b}{\textwidth}{Correlation between Fgf ligands and Fgf receptors.}{Scatter plots with each dot representing the mRNA expression levels of specific Fgf ligand and receptor pairs in one blastomere. The colour code is as in Figure~\ref{figProjection}, with pink representing E3.25 cells, light blue and light green E3.5 EPI and PrE cells, and blue and green E4.5 EPI and PrE cells, respectively.}
 
 
 %---------------------------------------------------------
