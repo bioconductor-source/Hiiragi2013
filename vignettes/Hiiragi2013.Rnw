@@ -36,7 +36,7 @@ BiocStyle::latex(short.fignames=TRUE)
 \newcommand{\myincheatmap}[5]{%
   \begin{figure}[tbp]
   \begin{center}
-  \includegraphics[width=#2\textwidth]{\prefix#1}
+  \includegraphics[width=#2\textwidth]{\prefix{#1}}
   \caption[Heatmap of #3.]{\label{#1}\textbf{Heatmap of #3}. Data from #4 features with evidence of 
     differential expression between the two clusters are shown. #5.}
   \end{center}
@@ -102,9 +102,7 @@ with(subset(pData(x), genotype=="FGF4-KO"),
 %--------------------------------------------------
 \subsection{Metadata curation}
 %-------------------------------------------------- 
-We define a grouping of the samples and an associated colour map, 
-% as from Yusuke's email of 12.4.2013, 10:36h)
-which will be used in the plots in this report.
+We define a grouping of the samples and an associated colour map, which will be used in the plots throughout this report.
 %
 <<sampleColours1>>=
 groups = with(pData(x), list(
@@ -160,6 +158,7 @@ stopifnot(sum(FGF4probes)==4)
 
 
 %--------------------------------------------------
+\clearpage
 \section{How many genes are expressed?}
 %--------------------------------------------------
 In this section, we aim to determine how many distinct mRNAs were detected by the arrays
@@ -181,7 +180,7 @@ used in the literature.
 \subsection{By variability}
 %----------------------------------------------------------
 The first approach is based on the notion that the existence of \emph{variability} of
-signal across samples is a more specific indicator of a transcripts presence, than the
+signal across samples is a more specific indicator of a transcript's presence, than the
 absolute signal intensity~\cite{Bourgon:2010:PNAS}. Let us plot the histogram of the
 standard deviation of each probe set's signal, across the \Sexpr{ncol(xe)} samples
 (Figure~\ref{figHistSds}).
@@ -193,7 +192,7 @@ hist(sdxe, 100, col="skyblue")
 abline(v=thresh)
 @ 
 %
-\incfig{figHistSds}{0.5\textwidth}{Histogram of
+\incfig{figHistSds}{0.6\textwidth}{Histogram of
 standard deviation of each probe set's signal}{across the \Sexpr{ncol(xe)} samples.}
 Based on the (visually) chosen threshold\footnote{One could also come up with a more
   automated, ``statistical'' rule, but the downstream result would be very similar.} \Robject{thresh},
@@ -215,8 +214,8 @@ stopifnot(nrow(pData(a))==ncol(x))
 mas5c = mas5calls(a[, selectedSamples])
 @
 %
-Some bookkeeping and shuffling around is needed to compute the number of genes --as defined by
-unique Ensembl identifiers-- for the classes \emph{present} (P), \emph{marginal} (M) and
+Some bookkeeping and shuffling around is needed to compute the number of genes, as defined by
+unique Ensembl identifiers, for the classes \emph{present} (P), \emph{marginal} (M) and
 \emph{absent} (A). If multiple probe sets map to one gene (which happens frequently on this array
 type), then P trumps M trumps A.
 %
@@ -259,6 +258,7 @@ See Figure~\ref{figmas5calls}.
 
 
 %----------------------------------------------------------
+\clearpage
 \section{Cluster stability analysis}
 \subsection{E3.25 and E3.5 WT samples}\label{sec:cluewt}
 %-----------------------------------------------------------
@@ -288,22 +288,22 @@ package~\cite{clue}. Briefly, the below function
 \end{enumerate}
 
 As a measure of between-cluster distance for the consensus clustering,
-the \emph{Euclidean} dissimilarity of the memberships is used, i.\,e.,
-the square root of the minimal sum of the squared differences of $u$
-and all column permutations of $v$, where $u$ and $v$ are the cluster membership matrices.
+the \emph{Euclidean} dissimilarity of the memberships is used, i.~e.,
+the square root of the minimal sum of the squared differences of $\mathbf{u}$
+and all column permutations of $\mathbf{v}$, where $\mathbf{u}$ and $\mathbf{v}$ are the cluster membership matrices.
 As agreement measure for step~\ref{clueagree}, the quantity $1 - d /
 m$ is used, where $d$ is the Euclidean dissimilarity,
 and $m$ is an upper bound for the maximal Euclidean dissimilarity~\cite{Dimitriadou:2002}.
 %
 <<clusterResampling>>=
-clusterResampling = function(x, ngenes, k = 2, B = 250, prob = 0.67) {
+clusterResampling = function(x, ngenes, k=2, B=250, prob=0.67) {
   mat = exprs(x)
   ce = cl_ensemble(list=lapply(seq_len(B), function(b) {
     selSamps = sample(ncol(mat), size=round(prob*ncol(mat)), replace=FALSE)
     submat = mat[, selSamps, drop=FALSE]
     selFeats = order(rowVars(submat), decreasing = TRUE)[seq_len(ngenes)]
     submat = submat[selFeats,, drop=FALSE]
-    pamres = pam(t(submat), k = k)
+    pamres = pam(t(submat), k=k)
     pred = cl_predict(pamres, t(mat[selFeats,]), "memberships")
     as.cl_partition(pred)
   }))
@@ -326,7 +326,7 @@ the beginning of this section.
 par(mfrow=c(1,2))
 colours  = c(sampleColourMap["E3.25"], brewer.pal(9,"Set1")[9])
 
-boxplot(lapply(ce, `[[`, "agreements"), ylab="agreements", col=colours)
+boxplot(lapply(ce, `[[`, "agreements"), ylab="agreement probabilities", col=colours)
 
 mems = lapply(ce, function(x) sort(cl_membership(x$consensus)[,1]))
 mgrp = lapply(seq(along=mems), function(i) rep(i, times=length(mems[[i]])))
@@ -349,7 +349,7 @@ text(x=1:2, y=par("usr")[3], labels=c("E3.25","E3.5"), adj=c(0.5, 1.4), xpd=NA)
   (resampled) clusterings disagree a lot, whereas for E3.5, the
   distribution is bimodal, with only one ambiguous sample.}
 
-We can compute a $p$ value for the statistical significance of the two distributions shown
+We can compute a $p$-value for the statistical significance of the two distributions shown
 in the boxplot of Figure~\ref{figClue1}.
 <<test>>=
 wilcox.test(ce$E3.25$agreements, ce$E3.5$agreements)
@@ -364,7 +364,7 @@ stability analysis analogous to that in Section~\ref{sec:cluewt}, using the FGF4
 cells together with 
 \begin{enumerate}
   \item the WT EPI E3.5 and WT PE E3.5 cells,
-  \item the WT EPI 4.5 and WT PE 4.5 cells.
+  \item the WT EPI E4.5 and WT PE E4.5 cells.
 \end{enumerate}
 As we will see in the following, in each of the above cases, three distinct clusters
 exist, and the above mentioned impression is not substantiated; in addition, we can also
@@ -384,13 +384,13 @@ par(mfrow=c(2,3))
 for(i in seq(along=csa))
   for(j in seq_len(k))
     plot(cl_membership(csa[[i]]$r$consensus)[,j], 
-     ylab=paste0("P(cluster ", j, ")"), xlab="Samples",
-     main=names(sampleSets)[i], col=csa[[i]]$colours, pch=16, cex=1.5)
+         ylab=paste0("P(cluster ", j, ")"), xlab="samples",
+         main=names(sampleSets)[i], col=csa[[i]]$colours, pch=16, cex=1.5)
 @ 
 %
 \incfig{figClue2}{\textwidth}{Cluster stability analysis with E3.5/E4.5 WT and E4.5 FGF4-KO samples.}{Top 
   row: Results of the cluster stability analysis with the E3.5 (EPI), E3.5 (PE), E4.5
-  (FGF4-KO) samples. Shown on the $y$-axis is the membership probability 
+  (FGF4-KO) samples. Shown on the $y$-axis is the membership probability P
   in the three clusters. The actual group
   membership of the samples (known to us but not used by the clustering algorithm) is indicated by the
   colours. Bottom row: Similarly for E4.5 (EPI), E4.5 (PE), E4.5 (FGF4-KO). These analyses indicate that the FGF4-KO
@@ -401,15 +401,10 @@ The results of the above code are shown in Figure~\ref{figClue2} and indicate th
 indeed FGF4-KO E4.5 cells are distinct from either of the WT groups.
 
 %-----------------------------------------------------------
-%\afterpage{\clearpage}
 \subsection{E3.25 WT and E3.5 FGF4-KO samples}\label{sec:clueko}
 %-----------------------------------------------------------
 
-<<saveRandomSeed, cache=TRUE, echo=FALSE, results=hide>>=
-#oldseed <- .Random.seed
-@
-%
-Although in the 2-dimensional PCA projection in Figure~\ref{figmds-2} dots representing FGF4-KO E3.5 cells appear to overlap with ones representing WT E3.25 samples, a cluster stability analysis analogous to that from the previous section indicates that they form a distinct population (Figure~\ref{figClue3}).
+Although in the 2-dimensional PCA projection in Figure~\ref{figmds-2} dots representing FGF4-KO E3.5 cells appear to overlap with ones representing WT E3.25 samples, cluster stability analysis analogous to that from the previous section indicates that they form a distinct population (Figure~\ref{figClue3}).
 %
 <<ce3,cache=TRUE>>=
 sampleSets = unlist(groups[c("E3.25", "E3.5 (FGF4-KO)")])
@@ -421,11 +416,11 @@ resampledSampleSet = clusterResampling(selSamples, ngenes=20)
 par(mfrow=c(1,2))
   for(j in seq_len(2))
     plot(cl_membership(resampledSampleSet$consensus)[,j], 
-     ylab=paste0("P(cluster ", j, ")"), xlab="Samples", col=x$sampleColour[sampleSets], pch=16)
-
+         ylab=paste0("P(cluster ", j, ")"), xlab="Samples",
+         col=x$sampleColour[sampleSets], pch=16, cex=1.5)
 @ 
 %
-\incfig[b!]{figClue3}{.66\textwidth}{Cluster stability analysis with E3.25 WT and E3.5 FGF4-KO samples.}{Results of the cluster stability analysis with the E3.25 WT and E3.5 FGF4-KO samples. The $y$-axis shows the membership probability in the two clusters. The actual group membership of the samples (known but not used by the clustering algorithm) is indicated by the colours.}
+\incfig{figClue3}{.66\textwidth}{Cluster stability analysis with E3.25 WT and E3.5 FGF4-KO samples.}{Results of the cluster stability analysis with the E3.25 WT and E3.5 FGF4-KO samples. The $y$-axis shows the membership probability in the two clusters. The actual group membership of the samples (known but not used by the clustering algorithm) is indicated by the colours.}
 
 The cluster stability analysis of the two clusters indicates that the FGF4-KO samples at E3.5 form a single, tight cluster, and are consistently together throughout all of the resamplings. The E3.25 WT cells, on the other hand, are much more diffuse and in the course of the resampling, each cell does not necassaryly cluster together with the same cluster all the time.
 Therefore, the difference is prevalently one of variability---the E3.25 WT are quite variable and cover a large "expression space", whereas the FGF4-KO are stuck on one particular, narrowly defined expresion profile. This is also evident from the heatmap showed in Figure~\ref{figHeatmapClue}. 
@@ -434,15 +429,11 @@ Therefore, the difference is prevalently one of variability---the E3.25 WT are q
 ngenes = 100
 selFeats = order(rowVars(exprs(selSamples)), decreasing = TRUE)[seq_len(ngenes)]
 myHeatmap(selSamples[selFeats,], collapseDuplicateFeatures = TRUE, haveColDend = TRUE)
-  
-<<restoreRandomSeed, cache=TRUE, echo=FALSE, results=hide>>=
-#.Random.seed <- oldseed
 @
 \incfig{figHeatmapClue}{\textwidth}{Heatmap of the E3.25 WT and E3.5 FGF4-KO samples.}{Data of the 100 genes with the highest variance. Even though a few individual cells from E3.25 WT do indeed seem to have similar expression profiles as ones from E3.5 FGF4-KO, which all cluster together, the populations are not the same.}
 
-
-
 %----------------------------------------------------------
+\clearpage
 \section{Lineage Markers}
 \label{sec:unsuper}
 %-----------------------------------------------------------
@@ -468,7 +459,7 @@ The function \Rfunction{pamCluster}
 selects the \Robject{ngenes} most variable genes in
 the data matrix \Robject{x} and seeks for two clusters using the
 \emph{partitioning around medoids} method.
-To control the influence of the parameter \Robject{ngenes}, we call the
+To assess the influence of the parameter \Robject{ngenes}, we call the
 algorithm for multiple choices, from 10 to 10000.
 <<doCluster>>=
 ngenes = c(10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000)
@@ -479,16 +470,12 @@ clusters = sapply(ngenes, pamCluster, x = xForClustering)
 The result is displayed in Figure~\ref{figClusters}.
 %
 <<figClusters, fig=TRUE, width=5, height=5>>=
-image(x=seq_len(nrow(clusters)),
-      y=seq_len(ncol(clusters)),
-      z=clusters,
-      col=c("#f0f0f0", "#000000"),
-      ylab="ngenes", xlab="samples", yaxt="n")
+image(clusters, col=c("#f0f0f0", "#000000"), ylab="ngenes", xlab="samples", yaxt="n")
 text(x=0, y=seq_len(ncol(clusters)), paste(ngenes), xpd=NA, adj=c(1, 0.5))
 @
 %
 \incfig{figClusters}{0.5\textwidth}{The influence of the
-  parameter \Robject{ngenes} on the clustering result.}{Each of the 22
+  parameter \Robject{ngenes} on the clustering result.}{Each of the \Sexpr{nrow(clusters)}
   samples corresponds to a column of the matrix, the rows of the
   matrix correspond to different choices for
   \Robject{ngenes}. Cluster membership is indicated by the colour code
@@ -504,7 +491,7 @@ i = which(ngenes==1000); stopifnot(length(i)==1)
 ngenes = ngenes[i]
 clusters = factor(clusters[,i])
 @
-We can check how the microarray-data driven clustering compares with
+Now we can check how the microarray-data driven clustering compares with
 the annotation of the cells that was provided by Yusuke in the Excel table:
 <<compareClusteringAnnotation>>=
 table(clusters, pData(x)[names(clusters), "lineage"])
@@ -515,7 +502,7 @@ stopifnot(all(
 ))
 @
 %
-We can see that the clustering perfectly agrees with Yusuke's labeling. \emph{Note}: the
+As we can see, the clustering perfectly agrees with Yusuke's labeling. \emph{Note}: the
 \texttt{lineage} annotation was used here only to assess the clustering output.
 It is not used as input for any of the data analyses shown in this document.
 %
@@ -537,14 +524,15 @@ is used to set the parameters for the independent filtering step~\cite{Bourgon:2
 <<figIndepFiltSetup, fig=TRUE, pdf=FALSE, png=TRUE, width=4.5, height=4.5>>=
 varianceRank = rank(-rowVars(exprs(xForClustering)))
 plot(varianceRank, deCluster$p.value, pch=".", log="y",
-     main="Parameters for the independent filtering")
+     main="Parameters for the independent filtering",
+     xlab="variance rank", ylab="p-value")
 nFilt=20000
 smallpValue=1e-4
 abline(v=nFilt, col="blue")
 abline(h=smallpValue, col="orange")
 @
 \incfig{figIndepFiltSetup}{0.5\textwidth}{Determination of the cutoff for independent
-  filtering.}{Each dot corresponds to one of the \Sexpr{nrow(xForClustering)} features on the array, the $x$-axis
+  filtering, E3.5 samples.}{Each dot corresponds to one of the \Sexpr{nrow(xForClustering)} features on the array, the $x$-axis
   shows the rank of the features overall variance across the  \Sexpr{ncol(xForClustering)} arrays in
   \Robject{xForClustering}, the $y$-axis the $p$-value from the $t$-test on a logarithmic scale.
   The horizontal orange line corresponds to a $p$-value of \Sexpr{smallpValue}.
@@ -562,9 +550,6 @@ passfilter = which(varianceRank<=nFilt)
 adjp = rep(NA_real_, nrow(x))
 adjp[passfilter] = p.adjust(deCluster$p.value[passfilter], method="BH")
 ord = order(adjp)
-# FDRcutoff = 0.1
-# differentially = ord[ adjp[ord]<=FDRcutoff & !is.na(adjp[ord]) ]
-# length(differentially)
 numFeaturesReport = 200
 differentially = ord[seq_len(numFeaturesReport)]
 length(unique(fData(x)$symbol[differentially]))
@@ -615,20 +600,19 @@ de45 = rowttests(x45, fac = "lineage")
 <<figIF45, fig=TRUE, pdf=FALSE, png=TRUE, width=4.5, height=4.5>>=
 varianceRank = rank(-rowVars(exprs(x45)))
 plot(varianceRank, de45$p.value, pch=".", log="y",
-     main="Parameters for the independent filtering")
+     main="Parameters for the independent filtering",
+     xlab="variance rank", ylab="p-value")
 abline(v=nFilt, col="blue")
 abline(h=smallpValue, col="orange")
 @
 See Figure~\ref{figIF45}.
 \incfig{figIF45}{0.5\textwidth}{Determination of the cutoff for independent
-  filtering.}{Analogous to Figure~\ref{figIndepFiltSetup}, but for E4.5.}
+  filtering, E4.5 samples.}{Analogous to Figure~\ref{figIndepFiltSetup}.}
 <<BH45>>=
 passfilter = which(varianceRank<=nFilt)
 adjp = rep(NA_real_, nrow(x))
 adjp[passfilter] = p.adjust(de45$p.value[passfilter], method="BH")
 ord = order(adjp)
-# differentially = ord[ adjp[ord]<=FDRcutoff & !is.na(adjp[ord]) ]
-# length(differentially)
 differentially = ord[seq_len(numFeaturesReport)]
 length(unique(fData(x)$symbol[differentially]))
 @
@@ -636,7 +620,7 @@ length(unique(fData(x)$symbol[differentially]))
 The FDR of the selected set of \Robject{numFeaturesReport}=\Sexpr{numFeaturesReport} features
 is \Sexpr{signif( adjp[tail(differentially,1)]*100, 3)}\%,
 and these correspond to \Sexpr{length(unique(fData(x)$symbol[differentially]))} unique genes.
-In the following code chunk, we write out a CSV file with the results table.
+The following code chunk writes out a CSV file with the results table.
 %
 <<write.csv>>=
 deFeat45 = cbind(de45[differentially, ], `FDR-adjusted p-value`=adjp[differentially], 
@@ -655,11 +639,11 @@ molecular terms, a look at the genes that are differentially expressed
 along the transitions from E3.25 to E3.5 (EPI) and from E3.25 to E3.5
 (PE) might be instructive. To this end, we
 determine the differentially expressed genes for each of the two
-comparisons, build the union set and display their data in the
-heatmap Figure~\ref{figdifferentiallyE325toE35}.
+comparisons, build the union set, and display their data in the
+heatmap shown in Figure~\ref{figdifferentiallyE325toE35}.
 It is interesting that some genes are specifying for either EPI or PE,
 whereas other genes show the same trend from E3.25 to E3.5 for both
-lineages (i.\,e.\ they only reflect time).
+lineages (i.~e.\ they only reflect time).
 %
 <<differentiallyE325toE35>>=
 samples = unlist(groups[c("E3.25", "E3.5 (EPI)", "E3.5 (PE)")])
@@ -1070,7 +1054,6 @@ stopifnot("Fgf4" %in% fData(xKO)$symbol[selectedFeatures])
   \Sexpr{length(selectedFeatures)} features with highest overall
   variance were used. One of them shows Fgf4.}
 
-\clearpage
 %-----------------------------------------------------------------
 \subsection{Differentially expressed genes between FGF4-KO and WT (PE, EPI) at E3.5}\label{sec:deWTFGF4KO}
 %-----------------------------------------------------------------
@@ -1111,7 +1094,7 @@ for(i in seq(along=de)) {
 %
 The plots are shown in Figure~\ref{figIndepFiltDeWtKo}. In contrast to
 Figure~\ref{figIndepFiltSetup}, this plot indicates no obvious choice of threshold
-from overall-variance (i.\,e., independent) filtering. In fact, there seem to be many
+from overall-variance (i.~e., independent) filtering. In fact, there seem to be many
 probes with apparently significant changes but very low average fold changes. These could
 be caused by ``batch effects'', and we will apply the fold change threshold
 \Robject{fcthresh} to remove these.
@@ -1131,7 +1114,7 @@ See Figure~\ref{fig2DWTKO}.
   FGF4-KO and WT (\Sexpr{paste(names(de), collapse=", ")}) at E3.5.}{Shown is a
   scatterplot of the average fold changes for both comparisons. Large values along the
   $x$-axis indicate a relatively higher level of expression in E3.5 (FGF4-KO) compared to
-  E3.5 (PE), small (i.\,e.\ negative) values indicate higher expression in E3.5 (PE);
+  E3.5 (PE), small (i.~e.\ negative) values indicate higher expression in E3.5 (PE);
   analogously for the $y$-axis.}
 %
 <<writetab35>>=
@@ -1205,8 +1188,7 @@ fts = lapply(keggpw, function(ps) {
 %
 First, let us select some prominent signalling pathways.
 <<pws1>>=
-pws = c("04010", "04070", "04150", "04310", "04330", "04340", "04350", "04370", "04630") 
-  # "04390", "04064", "04066", "04151", "04075", "04668"
+pws = c("04010", "04070", "04150", "04310", "04330", "04340", "04350", "04370", "04630")
 @ 
 %
 In addition, let us add those pathways with the strongest enrichment signal: 
@@ -1286,6 +1268,7 @@ for(i in seq(along=pws)) {
 
 
 %--------------------------------------------------
+\clearpage
 \section{Jensen-Shannon Divergence analysis}
 \label{sec:JSD}
 %--------------------------------------------------
@@ -1335,7 +1318,7 @@ and takes the square root.
 
 Since the majority of the \Sexpr{nrow(x)} features on the array are
 dominated ``noise'' and/or potential technical drifts, we want to use
-only the most highly variable (i.\,e.\ most informative) features,
+only the most highly variable (i.~e.\ most informative) features,
 %
 <<numberFeatures>>=
 numberFeatures = c(50, 200, 1000, 4000)
@@ -1404,8 +1387,8 @@ for(i in seq(along=numberFeatures)) {
   analysis with \emph{within-group standard deviation} as another
   measure of group spread.}
 
-\clearpage
 %--------------------------------------------------
+\clearpage
 \section{Classification of temporal profiles}
 \label{sec:temp}
 %--------------------------------------------------
@@ -1505,7 +1488,6 @@ can compare to Figure~\ref{FigTemporalChangeLineageMarkerExp}.
   Figure~\ref{FigTemporalChangeLineageMarkerExp}. The agreement is
   satisfactory.}
 
-\clearpage
 %--------------------------------------------------
 \subsection{Rule-based classification}
 %--------------------------------------------------
@@ -1652,6 +1634,7 @@ setdiff(fig2bGenes, rbGenes)
 
 
 %--------------------------------------------------
+\clearpage
 \section{qPCR data analysis}
 %--------------------------------------------------
 \subsection{Heatmaps for all data in \Robject{xq}}
@@ -1774,7 +1757,6 @@ myHeatmap3(sxqd, log=FALSE, Colv=FALSE, Rowv=FALSE, key=FALSE, ncol=3)
 \incfig{fighmd}{\textwidth}{Heatmap for the discretized values.}{Rows and
   colums are in the original order.}
 
-\clearpage
 \subsection{Temporal order - hierarchy}
 \begin{figure}[htbp]
 \input{fighmd.tex}
@@ -1850,7 +1832,7 @@ for(i in seq(along=costs)) {
 }
 @ 
 %
-See Figure~\ref{fighmd}.
+See Figure~\ref{fighmd-mult}.
 
 %------------------------------------------------------------
 \subsubsection{How significant is this?}
@@ -1882,6 +1864,7 @@ See Figure~\ref{figboot}.
 
 \appendix
 
+\clearpage
 \section{Influence of cell position on gene expression}
 
 To examine how cell position within the embryo influences its gene expression, cells lying on the surface of the ICM facing the blastocyst cavity were fluorescently labelled and expression profiled versus those located deeper within the ICM. We then used multi-dimensional scaling to compare the labelled and non-labelled cells at E3.5 and E4.5, based on the expression of 10 highly variable genes, as identified from the E3.5 and 4.5 microarray data, and quantified by single-cell qPCR measurements. The result of this analysis is show in Figure~\ref{mdsplot}.
@@ -1906,7 +1889,6 @@ md = isoMDS( dist(t(log(exprs(xql),2))))$points
 plot(md, col=xql$sampleColours, pch=16, asp=1, xlab="",ylab="")
 @
 \incfig{mdsplot}{.6\textwidth}{Multi-dimensional scaling plot.}{Light red and light green dots represent E3.5 labeled and unlabeled cells, while red and green ones represent E4.5 labeled and unlabeled cells, respectively.}
-
 
 \section{Correlation between Fgf ligands and Fgf receptors}
 
