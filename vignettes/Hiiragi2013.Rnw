@@ -5,7 +5,7 @@
 \documentclass[10pt,a4paper]{article}
 
 <<style, echo=FALSE, results=tex>>=
-BiocStyle::latex(short.fignames=TRUE)
+BiocStyle::latex(short.fignames=TRUE, bibstyle="unsrturl")
 @ 
 
 \RequirePackage[usenames,dvipsnames]{color}
@@ -973,11 +973,12 @@ names(sds) = sprintf("%s (n=%d)", names(sds), listLen(varGroups))
 
 varGroupX = factor(sapply(strsplit(names(varGroups), split=":"),`[`, 1))
 <<figFGF4variab,fig=TRUE,width=5,height=5>>=
-par(mai=c(2,0.7,0.1,0.1))
+op = par(mai=c(2,0.7,0.1,0.1))
 plot(jitter(as.integer(varGroupX)), sds, xaxt="n", xlab="", ylab="")
 text(x = as.integer(unique(varGroupX)), 
      labels = as.character(unique(varGroupX)),
      y = par("usr")[3], srt = 90, adj = c(1,0.5), xpd = NA)
+par(op)
 @
 %
 \incfig{figFGF4variab}{0.6\textwidth}{Variability of different groups of
@@ -1720,13 +1721,14 @@ stst = sapply(split(seq(along=sxq$sampleGroup), sxq$sampleGroup),
 groupmedians
 discrthreshs
 <<figthr,width=6,height=7,fig=TRUE>>=
-par(mfrow=c(nrow(sxq), 1), mai=c(0.1, 0.7, 0.01, 0.01))
+op = par(mfrow=c(nrow(sxq), 1), mai=c(0.1, 0.7, 0.01, 0.01))
 for(j in seq_len(nrow(sxq))) {
   plot(exprs(sxq)[j,], type="n", xaxt="n", ylab=fData(sxq)$symbol[j])
   segments(x0=stst[1,],    x1=stst[2,],    y0=groupmedians[j,],   col="#808080", lty=3)
   segments(x0=stst[1,1:2], x1=stst[2,2:3], y0=discrthreshs[j,], col="#404040")
   points(exprs(sxq)[j,], pch=16, col=sxq$sampleColour)
 }
+par(op)
 @ 
 %
 
@@ -1939,8 +1941,7 @@ toLatex(sessionInfo())
 label=readdata,breaklines=true,caption={The script \texttt{readdata.R}}]{readdata.R}
 
 %------------------------------------------------------------
-\bibliographystyle{unsrt}
-\bibliography{bibliography}
+\bibliography{Hiiragi2013}
 %------------------------------------------------------------
 
 \end{document}
