@@ -5,7 +5,7 @@
 \documentclass[10pt,a4paper]{article}
 
 <<style, echo=FALSE, results=tex>>=
-BiocStyle::latex(short.fignames=TRUE, bibstyle="unsrturl")
+BiocStyle::latex(short.fignames=TRUE, bibstyle=NA)
 @ 
 
 \RequirePackage[usenames,dvipsnames]{color}
@@ -1941,6 +1941,7 @@ toLatex(sessionInfo())
 label=readdata,breaklines=true,caption={The script \texttt{readdata.R}}]{readdata.R}
 
 %------------------------------------------------------------
+\bibliographystyle{unsrt}
 \bibliography{Hiiragi2013}
 %------------------------------------------------------------
 
