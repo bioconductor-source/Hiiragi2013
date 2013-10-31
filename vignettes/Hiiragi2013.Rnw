@@ -5,7 +5,7 @@
 \documentclass[10pt,a4paper]{article}
 
 <<style, echo=FALSE, results=tex>>=
-BiocStyle::latex(short.fignames=TRUE, bibstyle=NA)
+BiocStyle::latex(short.fignames=TRUE, use.unsrturl=FALSE)
 @ 
 
 \RequirePackage[usenames,dvipsnames]{color}
