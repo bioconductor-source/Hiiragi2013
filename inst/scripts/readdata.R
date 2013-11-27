@@ -1,8 +1,12 @@
 library("affy")
 library("mouse4302.db")
 library("arrayQualityMetrics")
+library("ArrayExpress")
 
 options(error=recover)
+
+CELdir = tempdir()
+CELfiles = getAE("E-MTAB-1681", path=CELdir, type="raw")$rawFiles
 
 ## --------------------------------------------------
 ## Read array metadata table and fill empty cells in the columns
@@ -18,7 +22,7 @@ fillColumn = function(x, empty){
   return(x)
 }
 
-readYusukeTable = function(name, checkRows=TRUE) {
+readCSVtable = function(name, checkRows=TRUE) {
   x = read.csv(name, stringsAsFactors = FALSE, colClasses = "character")
   x$Embryonic.day = factor(fillColumn(x$Embryonic.day, empty=function(x) x==""))
   
@@ -46,24 +50,19 @@ readYusukeTable = function(name, checkRows=TRUE) {
 }
 
 ##------Script starts here--------
-pdata = readYusukeTable("List of microarray_Hiiragi_Oles.csv", checkRows = FALSE)
+pdata = readCSVtable( system.file("scripts", "annotation.csv", package="Hiiragi2013"), checkRows = FALSE)
 
 pdata$genotype = as.factor(ifelse(grepl("_KO$", pdata$File.name), "FGF4-KO", "WT"))
-
-## --------------------------------------------------
-## Find input directory
-## --------------------------------------------------
-celdir = "/home/oles/Projects/Hiiragi2011/ArrayExpress/CELfiles"
 
 ## --------------------------------------------------
 ## Read the CEL files
 ## --------------------------------------------------
 fileNames = paste(pdata$File.name, "CEL", sep=".")
-fileExists = (fileNames %in% dir(celdir))
+fileExists = (fileNames %in% CELfiles)
 stopifnot(all(fileExists))
 
 a = ReadAffy(filenames = fileNames,
-             celfile.path = celdir,
+             celfile.path = CELdir,
              phenoData = pdata, verbose=TRUE)
 
 pData(a)$ScanDate = factor(as.Date(sub( "10/16/09", "2010-09-16",

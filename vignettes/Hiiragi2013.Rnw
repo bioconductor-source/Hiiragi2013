@@ -1938,7 +1938,7 @@ toLatex(sessionInfo())
 %---------------------------------------------------------
 \section{The data import script \texttt{readdata.R}}\label{sec:readdata}
 \lstinputlisting[language=R,
-label=readdata,breaklines=true,caption={The script \texttt{readdata.R}}]{readdata.R}
+label=readdata,breaklines=true,caption={The script \texttt{readdata.R}}]{../inst/scripts/readdata.R}
 
 %------------------------------------------------------------
 \bibliographystyle{unsrt}
