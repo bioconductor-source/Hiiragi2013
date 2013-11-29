@@ -702,11 +702,10 @@ to overall variance across the WT samples, excluding, however, the FGF4 probes (
 any possible concerns about ``trivial'' effects of the KOs).
 %
 <<varianceOrder,cache=TRUE>>=
-nfeatures = c(10, 50, 100, 1000)
+nfeatures = 100
 varianceOrder = order(rowVars(exprs(x[, g])), decreasing=TRUE)
 varianceOrder = setdiff(varianceOrder, which(FGF4probes))
-i=3
-selectedFeatures = varianceOrder[seq_len(nfeatures[i])]
+selectedFeatures = varianceOrder[seq_len(nfeatures)]
 xwt = x[selectedFeatures, g]
 @
 Before embarking on the PCA computation, construct a new data matrix with equal group sizes.
@@ -962,10 +961,10 @@ data.frame(
   stringsAsFactors = FALSE)
 @
 %
-Again select the top \Sexpr{nfeatures[3]} genes according to \Robject{varianceOrder}.
+Again select the top \Sexpr{nfeatures} genes according to \Robject{varianceOrder}.
 %
 <<FGF4variab1>>=
-sel   = varianceOrder[seq_len(nfeatures[3])]
+sel   = varianceOrder[seq_len(nfeatures)]
 myfun = function(x) median(apply(exprs(x), 1, mad))
 
 sds = lapply(varGroups, function(j) myfun(x[sel, j]))
@@ -975,9 +974,7 @@ varGroupX = factor(sapply(strsplit(names(varGroups), split=":"),`[`, 1))
 <<figFGF4variab,fig=TRUE,width=5,height=5>>=
 op = par(mai=c(2,0.7,0.1,0.1))
 plot(jitter(as.integer(varGroupX)), sds, xaxt="n", xlab="", ylab="")
-text(x = as.integer(unique(varGroupX)), 
-     labels = as.character(unique(varGroupX)),
-     y = par("usr")[3], srt = 90, adj = c(1,0.5), xpd = NA)
+axis(1, las=2, tick = FALSE, at = unique(varGroupX), labels = unique(varGroupX))
 par(op)
 @
 %

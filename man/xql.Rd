@@ -1,15 +1,12 @@
 \name{xql}
 \alias{xql}
 \docType{data}
-\title{
-qPCR Gene Expression 
-}
+\title{Position-dependent Gene Expression}
 \description{
-Single-cell gene expression measured by qPCR stored in an \code{ExpressionSet}.
+An \code{\link[Biobase:class.ExpressionSet]{ExpressionSet}} object containing single-cell gene expression measured by qPCR, with cells facing the blastocyst cavity labelled fluorescently.
 }
 \usage{data(xql)}
-\format{
-  The format is:
+\format{\preformatted{
 Formal class 'ExpressionSet' [package "Biobase"] with 7 slots
   ..@ experimentData   :Formal class 'MIAME' [package "Biobase"] with 13 slots
   .. .. ..@ name             : chr ""
@@ -63,12 +60,12 @@ Formal class 'ExpressionSet' [package "Biobase"] with 7 slots
   .. .. .. ..$ : int [1:3] 2 20 1
   .. .. .. ..$ : int [1:3] 1 3 0
   .. .. .. ..$ : int [1:3] 1 0 0
-}
-\references{
-Ohnishi et al., 2013
-}
+}}
+\references{Ohnishi et al., 2013}
+\seealso{\code{\link{a}}, \code{\link{x}}, \code{\link{xq}}}
 \examples{
 data(xql)
-## maybe str(xql) ; plot(xql) ...
+xql
+pData(xql)
 }
 \keyword{datasets}

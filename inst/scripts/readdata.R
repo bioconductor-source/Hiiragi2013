@@ -67,7 +67,8 @@ a = ReadAffy(filenames = fileNames,
 
 pData(a)$ScanDate = factor(as.Date(sub( "10/16/09", "2010-09-16",
     sapply(strsplit( protocolData(a)$ScanDate, split = "[T ]" ), `[`, 1) )))
-save(a, file="a.RData")
+
+save(a, file="a.rda")
 
 ## --------------------------------------------------
 ## normalize with RMA
@@ -87,4 +88,4 @@ fData(x)$symbol   = annotateGene(mouse4302SYMBOL,   "symbol", missing = featureN
 fData(x)$genename = annotateGene(mouse4302GENENAME, "gene_name", missing = "")
 fData(x)$ensembl  = annotateGene(mouse4302ENSEMBL,  "ensembl_id", missing = "")
 
-save(x, file="x.RData")
+save(x, file="x.rda")

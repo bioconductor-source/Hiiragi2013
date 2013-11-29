@@ -1,15 +1,12 @@
 \name{xq}
 \alias{xq}
 \docType{data}
-\title{
-qPCR Gene Expression 
-}
+\title{qPCR Gene Expression}
 \description{
-Single-cell gene expression measured by qPCR stored in an \code{ExpressionSet}.
+An \code{\link[Biobase:class.ExpressionSet]{ExpressionSet}} object containing single-cell gene expression levels measured by qPCR.
 }
 \usage{data(xq)}
-\format{
-  The format is:
+\format{\preformatted{
 Formal class 'ExpressionSet' [package "Biobase"] with 7 slots
   ..@ experimentData   :Formal class 'MIAME' [package "Biobase"] with 13 slots
   .. .. ..@ name             : chr ""
@@ -28,17 +25,15 @@ Formal class 'ExpressionSet' [package "Biobase"] with 7 slots
   .. .. .. .. ..@ .Data:List of 2
   .. .. .. .. .. ..$ : int [1:3] 1 0 0
   .. .. .. .. .. ..$ : int [1:3] 1 1 0
-  ..@ assayData        :<environment: 0x95bc008> 
+  ..@ assayData        :<environment: 0xb12e938> 
   ..@ phenoData        :Formal class 'AnnotatedDataFrame' [package "Biobase"] with 4 slots
-  .. .. ..@ varMetadata      :'data.frame':	6 obs. of  1 variable:
-  .. .. .. ..$ labelDescription: chr [1:6] NA NA NA NA ...
-  .. .. ..@ data             :'data.frame':	137 obs. of  6 variables:
+  .. .. ..@ varMetadata      :'data.frame':  4 obs. of  1 variable:
+  .. .. .. ..$ labelDescription: chr [1:4] NA NA NA NA
+  .. .. ..@ data             :'data.frame':	137 obs. of  4 variables:
   .. .. .. ..$ Sample.ID    : chr [1:137] "34c_2" "34c_3" "34c_4" "34c_5" ...
   .. .. .. ..$ Embryonic.day: chr [1:137] "E3.25" "E3.25" "E3.25" "E3.25" ...
   .. .. .. ..$ Cell.type    : chr [1:137] "ICM" "ICM" "ICM" "ICM" ...
-  .. .. .. ..$ sampleColours: chr [1:137] "#CAB2D6" "#CAB2D6" "#CAB2D6" "#CAB2D6" ...
   .. .. .. ..$ sampleGroup  : chr [1:137] "E3.25" "E3.25" "E3.25" "E3.25" ...
-  .. .. .. ..$ sampleColour : chr [1:137] "#CAB2D6" "#CAB2D6" "#CAB2D6" "#CAB2D6" ...
   .. .. ..@ dimLabels        : chr [1:2] "sampleNames" "sampleColumns"
   .. .. ..@ .__classVersion__:Formal class 'Versions' [package "Biobase"] with 1 slots
   .. .. .. .. ..@ .Data:List of 1
@@ -67,12 +62,12 @@ Formal class 'ExpressionSet' [package "Biobase"] with 7 slots
   .. .. .. ..$ : int [1:3] 2 16 0
   .. .. .. ..$ : int [1:3] 1 3 0
   .. .. .. ..$ : int [1:3] 1 0 0
-}
-\references{
-Ohnishi et al., 2013
-}
+}}
+\references{Ohnishi et al., 2013}
+\seealso{\code{\link{a}}, \code{\link{x}}, \code{\link{xql}}}
 \examples{
 data(xq)
-## maybe str(xq) ; plot(xq) ...
+xq
+pData(xq)
 }
 \keyword{datasets}
