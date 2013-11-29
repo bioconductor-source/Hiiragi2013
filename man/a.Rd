@@ -3,8 +3,8 @@
 \docType{data}
 \title{RAW Microarray Data}
 \description{
-Microarray data stored in an \code{\link[affy:AffyBatch-class]{AffyBatch}} object.
-It contains unprocessed raw intensity values from the original CEL files
+Unprocessed microarray data stored in an \code{\link[affy:AffyBatch-class]{AffyBatch}} object.
+It contains raw intensity values from the original CEL files
 arranged in a matrix layout, where each column represents one hybridization,
 and rows stand for individual array features.
 }

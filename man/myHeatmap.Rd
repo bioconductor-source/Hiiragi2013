@@ -3,7 +3,7 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Plot Heatmaps}
 \description{
-Performs hierarchical cluster analysis of features and samples from an \code{\link[Biobase:class.ExpressionSet]{ExpressionSet}} and plots the resulting heatmap.
+Plots a heatmap with features (rows) and samples (columns) reordered according to hierarchical clustering.
 }
 \usage{
 myHeatmap(x, collapseDuplicateFeatures = FALSE, haveColDend = FALSE)

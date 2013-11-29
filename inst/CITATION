@@ -1,0 +1,22 @@
+citEntry(entry="article",
+  title = "Cell-to-cell expression variability followed by signal reinforcement progressively segregates early mouse lineages",
+  author = personList( as.person("Yusuke Ohnishi"), 
+		        as.person("Wolfgang Huber"),
+            as.person("Akiko Tsumura"),
+            as.person("Minjung Kang"),
+		        as.person("Panagiotis Xenopoulos"),
+            as.person("Kazuki Kurimoto"),
+            as.person("Andrzej K. Oleś"),
+            as.person("Marcos J. Araúzo-Bravo"),
+            as.person("Mitinori Saitou"),
+            as.person("Anna-Katerina Hadjantonakis"),
+            as.person("Takashi Hiiragi")),
+  journal = "Nature Cell Biology",
+  year = "2013",
+  doi = "10.1038/ncb2881",
+  url = "http://dx.doi.org/10.1038/ncb2881",
+  textVersion = 
+         paste("Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej K. Oleś, Marcos J. Araúzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis, Takashi Hiiragi  (2013):",
+                "Cell-to-cell expression variability followed by signal reinforcement progressively segregates early mouse lineages.",
+                "Nature Cell Biology", "doi:10.1038/ncb2881")
+)

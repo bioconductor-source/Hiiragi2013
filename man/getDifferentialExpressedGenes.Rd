@@ -22,7 +22,7 @@ getDifferentialExpressedGenes(x, groups, g1, g2, theta = 0.5, FDRcutoff = 0.05)
   
   The filtering selects only features whose variance is greater than the quantile defined by the probability \code{theta}.
 }
-\value{Integer vector containing indices of differentially expressed features from \code{x}}
+\value{Integer vector containing indices of differentially expressed features from \code{x}.}
 \author{Wolfgang Huber, 2013}
 \examples{
 data(x)
@@ -31,7 +31,7 @@ groups = with(pData(x), list(
   "E3.5 (EPI)"  = which(genotype=="WT" & Embryonic.day=="E3.5" & lineage=="EPI"),
   "E3.5 (PE)"   = which(genotype=="WT" & Embryonic.day=="E3.5" & lineage=="PE")))
   
-# get a list of differentailly expressed genes along the transition from E3.25 to E3.5
+# get a list of differentially expressed genes along the transition from E3.25 to E3.5
 de = union(
   getDifferentialExpressedGenes(x, groups, "E3.25", "E3.5 (EPI)"),
   getDifferentialExpressedGenes(x, groups, "E3.25", "E3.5 (PE)"))

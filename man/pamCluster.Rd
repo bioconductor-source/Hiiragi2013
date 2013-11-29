@@ -1,19 +1,15 @@
 \name{pamCluster}
 \alias{pamCluster}
-\title{
-Clustering of the most variable genes
-}
+\title{Clustering of Most Variable Genes}
 \description{
-The function \code{pamCluster} selects the \code{ngenes} most variable genes in
-the data matrix \code{x} and seeks for two clusters using the
-partitioning around medoids method \code{pam}.
+The function \code{pamCluster} selects the \code{ngenes} most variable genes and performs their clustering using the partitioning around medoids method \code{\link[cluster:pam]{pam}}.
 }
 \usage{
 pamCluster(ngenes, x, k = 2)
 }
 \arguments{
   \item{ngenes}{numeric, the number of most variable genes to select} 
-  \item{x}{\code{ExpressionSet} containing gene expression values}
+  \item{x}{\code{\link[Biobase:class.ExpressionSet]{ExpressionSet}} containing gene expression values}
   \item{k}{positive integer specifying the number of clusters}
 }
 \value{
@@ -22,6 +18,12 @@ pamCluster(ngenes, x, k = 2)
 \seealso{pam}
 \author{Wolfgang Huber}
 \examples{
-  data("x")
-  pc = pamCluster(40, x, k=4)
+data("x")
+y = x[, x$Embryonic.day=="E3.5"]
+
+## perform the clustering 
+pc = pamCluster(50, y, k=3)
+
+## display clustering vs. sample lineage
+plot(as.factor(pData(y)$lineage), pc, yaxt="n", xlab="lineage", ylab="cluster")
 }
