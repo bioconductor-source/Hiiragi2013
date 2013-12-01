@@ -1,18 +1,16 @@
 library("affy")
-library("mouse4302.db")
-library("arrayQualityMetrics")
 library("ArrayExpress")
+library("arrayQualityMetrics")
+library("mouse4302.db")
 
-options(error=recover)
+CELdir    = tempdir()
+CELfiles  = getAE("E-MTAB-1681", path = CELdir, type = "raw")$rawFiles
 
-CELdir = tempdir()
-CELfiles = getAE("E-MTAB-1681", path=CELdir, type="raw")$rawFiles
+## ---------------------------------------------------------------------------------
+## Read array metadata table and fill empty cells in the columns Embryonic.day
+## and Total.number.of.cells by the values implied ## by the non-empty cells above
+## ---------------------------------------------------------------------------------
 
-## --------------------------------------------------
-## Read array metadata table and fill empty cells in the columns
-## Embryonic.day and Total.number.of.cells by the values implied
-## by the non-empty cells above
-## --------------------------------------------------
 fillColumn = function(x, empty){
   wh  = which(!empty(x))
   len = length(wh)
@@ -22,9 +20,9 @@ fillColumn = function(x, empty){
   return(x)
 }
 
-readCSVtable = function(name, checkRows=TRUE) {
+readCSVtable = function(name) {
   x = read.csv(name, stringsAsFactors = FALSE, colClasses = "character")
-  x$Embryonic.day = factor(fillColumn(x$Embryonic.day, empty=function(x) x==""))
+  x$Embryonic.day = factor(fillColumn(x$Embryonic.day, empty = function(x) x==""))
   
   wh = which(colnames(x)=="Total.number.of.cells")
   if(length(wh)==1) {
@@ -42,37 +40,35 @@ readCSVtable = function(name, checkRows=TRUE) {
     x$lineage = rep(NA, nrow(x))
   }
   
-  if(checkRows)
-    stopifnot(identical(seq_len(nrow(x)),
-                        as.integer(sapply(strsplit(x[,"File.name"], split="_", fixed=TRUE), `[`, 1))))
-  
   return(x)
 }
 
-##------Script starts here--------
-pdata = readCSVtable( system.file("scripts", "annotation.csv", package="Hiiragi2013"), checkRows = FALSE)
+## ------------------------------ Script starts here -------------------------------
+
+pdata = readCSVtable(system.file("scripts", "annotation.csv", package = "Hiiragi2013"))
 
 pdata$genotype = as.factor(ifelse(grepl("_KO$", pdata$File.name), "FGF4-KO", "WT"))
 
-## --------------------------------------------------
+## ---------------------------------------------------------------------------------
 ## Read the CEL files
-## --------------------------------------------------
-fileNames = paste(pdata$File.name, "CEL", sep=".")
+## ---------------------------------------------------------------------------------
+
+fileNames = paste(pdata$File.name, "CEL", sep = ".")
 fileExists = (fileNames %in% CELfiles)
 stopifnot(all(fileExists))
 
-a = ReadAffy(filenames = fileNames,
-             celfile.path = CELdir,
-             phenoData = pdata, verbose=TRUE)
+a = ReadAffy(filenames = fileNames, celfile.path = CELdir, phenoData = pdata,
+             verbose = TRUE)
 
 pData(a)$ScanDate = factor(as.Date(sub( "10/16/09", "2010-09-16",
     sapply(strsplit( protocolData(a)$ScanDate, split = "[T ]" ), `[`, 1) )))
 
 save(a, file="a.rda")
 
-## --------------------------------------------------
-## normalize with RMA
-## --------------------------------------------------
+## ---------------------------------------------------------------------------------
+## Normalize with RMA
+## ---------------------------------------------------------------------------------
+
 x = rma(a)
 
 ## Create columns
