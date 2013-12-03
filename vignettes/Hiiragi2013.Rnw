@@ -70,7 +70,6 @@ We first load the required R package and set the random seed.
 <<packages, results=hide>>=
 library("Hiiragi2013")
 set.seed(2013)
-options(error=recover)
 @
 %
 The array data consist of a set of CEL files (the output from the Affymetrix scanner
@@ -100,7 +99,7 @@ with(subset(pData(x), genotype=="FGF4-KO"), table(Embryonic.day))
 @
 %
 %--------------------------------------------------
-\subsection{Metadata curation}
+\subsection{Grouping of samples}
 %-------------------------------------------------- 
 We define a grouping of the samples and an associated colour map, which will be used in the plots throughout this report.
 %
@@ -117,11 +116,11 @@ groups = with(pData(x), list(
 
 sampleColourMap = character(length(groups))
 names(sampleColourMap) = names(groups)
-sampleColourMap[c("E3.5 (EPI)", "E4.5 (EPI)")] = brewer.pal(10, "Paired")[1:2]
-sampleColourMap[c("E3.5 (PE)", "E4.5 (PE)")] = brewer.pal(10, "Paired")[3:4]
-sampleColourMap[c("E3.25 (FGF4-KO)")] = brewer.pal(10, "Paired")[c(7)]
+sampleColourMap[c("E3.5 (EPI)", "E4.5 (EPI)")]         = brewer.pal(10, "Paired")[1:2]
+sampleColourMap[c("E3.5 (PE)", "E4.5 (PE)")]           = brewer.pal(10, "Paired")[3:4]
+sampleColourMap[c("E3.25 (FGF4-KO)")]                  = brewer.pal(10, "Paired")[c(7)]
 sampleColourMap[c("E3.5 (FGF4-KO)", "E4.5 (FGF4-KO)")] = brewer.pal(10, "Paired")[c(8,6)]
-sampleColourMap[c("E3.25")] = brewer.pal(12, "Paired")[c(9)]
+sampleColourMap[c("E3.25")]                            = brewer.pal(12, "Paired")[c(9)]
 stopifnot(!any(sampleColourMap==""))
 @
 The following assertions aim to make sure that each sample was assigned to exactly one group.
@@ -225,7 +224,7 @@ myUnique = function(x) setdiff(unique(x), "")
 allEnsemblIDs = myUnique(fData(xe)$ensembl)
 
 callsPerGenePerArray = matrix(0, nrow = length(allEnsemblIDs), ncol = ncol(mas5c)+1,
-                              dimnames=list(allEnsemblIDs, NULL))
+                              dimnames = list(allEnsemblIDs, NULL))
 
 for(j in seq_len(ncol(mas5c))) {
   for(k in 1:2) {
@@ -237,7 +236,7 @@ for(j in seq_len(ncol(mas5c))) {
 fractionOfArrays = 0.1
 for(k in 1:2) {
   ids = myUnique(fData(xe)$ensembl[ apply(exprs(mas5c)==c("M","P")[k], 1, 
-      function(v) (mean(v)>fractionOfArrays)) ])
+                                          function(v) (mean(v)>fractionOfArrays)) ])
   callsPerGenePerArray[ids, ncol(mas5c)+1] = k
 }
 
@@ -317,7 +316,8 @@ clusterResampling = function(x, ngenes, k = 2, B = 250, prob = 0.67) {
 <<ce1,cache=TRUE>>=
 ce = list(
   "E3.25" = clusterResampling(x[, unlist(groups[c("E3.25")])], ngenes = 20),
-  "E3.5"  = clusterResampling(x[, unlist(groups[c("E3.5 (EPI)", "E3.5 (PE)")])], ngenes = 20))
+  "E3.5"  = clusterResampling(x[, unlist(groups[c("E3.5 (EPI)", "E3.5 (PE)")])],
+                              ngenes = 20))
 @
 %
 The results are shown in Figure~\ref{figClue1}. They confirm the hypothesis stated at
@@ -339,7 +339,7 @@ plot(unlist(lapply(mgrp, myjitter)), unlist(mems),
 text(x = 1:2, y = par("usr")[3], labels = c("E3.25","E3.5"), adj = c(0.5, 1.4), xpd = NA)
 @
 %
-\incfig{figClue1}{0.8\textwidth}{Cluster stability analysis wit E3.25 and E3.5 WT samples.}{Left:
+\incfig{figClue1}{0.8\textwidth}{Cluster stability analysis with E3.25 and E3.5 WT samples.}{Left:
   boxplot of the cluster agreements  with the consensus, for the
   \Robject{B}=\Sexpr{formals(clusterResampling)$B}
   clusterings; 1 indicates perfect agreement, and
@@ -378,8 +378,7 @@ sampleSets = list(
 k = 3
 csa = lapply(sampleSets, function(samps) list(
   colours = x$sampleColour[samps], 
-  r = clusterResampling(x[!FGF4probes, samps], ngenes = 20, k = k)
-))
+  r = clusterResampling(x[!FGF4probes, samps], ngenes = 20, k = k)))
 <<figClue2,fig=TRUE,width=8,height=6>>=
 par(mfrow = c(2,3))
 for(i in seq(along = csa))
@@ -429,7 +428,7 @@ Therefore, the difference is prevalently one of variability---the E3.25 WT are q
 <<figHeatmapClue,fig=TRUE,width=10,height=13>>=
 ngenes = 100
 selFeats = order(rowVars(exprs(selSamples)), decreasing = TRUE)[seq_len(ngenes)]
-myHeatmap(selSamples[selFeats,], collapseDuplicateFeatures = TRUE, haveColDend = TRUE)
+myHeatmap(selSamples[selFeats, ], collapseDuplicateFeatures = TRUE, haveColDend = TRUE)
 @
 \incfig{figHeatmapClue}{\textwidth}{Heatmap of the E3.25 WT and E3.5 FGF4-KO samples.}{Data of the 100 genes with the highest variance. Even though a few individual cells from E3.25 WT do indeed seem to have similar expression profiles as ones from E3.5 FGF4-KO, which all cluster together, the populations are not the same.}
 
@@ -454,7 +453,7 @@ In this section, the following steps are performed:
 \end{enumerate}
 
 %-----------------------------------------------------------------
-\subsection{Clustering}\label{sec:cluster}
+\subsection{Clustering of E3.5 WT samples}\label{sec:cluster}
 %-----------------------------------------------------------------
 The function \Rfunction{pamCluster}
 selects the \Robject{ngenes} most variable genes in
@@ -513,7 +512,7 @@ cbind(unlist(groups[c("E3.5 (EPI)", "E3.5 (PE)")]), ce[[2]]$consensus$.Data[, 1]
 @
 
 %-----------------------------------------------------------------
-\subsection{Differentially expressed genes E3.5}
+\subsection{Differentially expressed genes in E3.5 samples}
 \label{sec:deCluster}
 %-----------------------------------------------------------------
 <<deBetweenClusters>>=
@@ -534,7 +533,7 @@ abline(v = nFilt, col = "blue")
 abline(h = smallpValue, col = "orange")
 @
 \incfig{figIndepFiltSetup}{0.5\textwidth}{Determination of the cutoff for independent
-  filtering, E3.5 samples.}{Each dot corresponds to one of the \Sexpr{nrow(xForClustering)} features on the array, the $x$-axis
+  filtering on E3.5 WT samples.}{Each dot corresponds to one of the \Sexpr{nrow(xForClustering)} features on the array, the $x$-axis
   shows the rank of the features overall variance across the  \Sexpr{ncol(xForClustering)} arrays in
   \Robject{xForClustering}, the $y$-axis the $p$-value from the $t$-test on a logarithmic scale.
   The horizontal orange line corresponds to a $p$-value of \Sexpr{smallpValue}.
@@ -563,8 +562,8 @@ and these correspond to \Sexpr{length(unique(fData(x)$symbol[differentially]))} 
 In the following code chunk, we write out the results table into a CSV file.
 %
 <<write.csv>>=
-deFeat35 = cbind(deCluster[differentially, ], `FDR-adjusted p-value` = adjp[differentially], 
-                 fData(x)[differentially, ])
+deFeat35 = cbind(deCluster[differentially,], `FDR-adjusted p-value` = adjp[differentially], 
+                 fData(x)[differentially,])
 write.csv(deFeat35, file = "differentially-expressed-features-3.5.csv")
 @
 
@@ -591,7 +590,7 @@ myHeatmap(xForClustering[differentially, ], collapseDuplicateFeatures = TRUE)
 \myincheatmap{figHeatmap35Coll}{0.6}{only the WT arrays from E3.5 with duplicate features collapsed}{\Sexpr{length(differentially)}}{Duplicate features per gene were averaged}
 
 %-----------------------------------------------------------------
-\subsection{Differentially expressed genes E4.5}
+\subsection{Differentially expressed genes in E4.5 samples}
 \label{sec:de45}
 %-----------------------------------------------------------------
 The following code is analogous to Section~\ref{sec:deCluster}.
@@ -608,7 +607,7 @@ abline(h = smallpValue, col = "orange")
 @
 See Figure~\ref{figIF45}.
 \incfig{figIF45}{0.5\textwidth}{Determination of the cutoff for independent
-  filtering, E4.5 samples.}{Analogous to Figure~\ref{figIndepFiltSetup}.}
+  filtering on E4.5 WT samples.}{Analogous to Figure~\ref{figIndepFiltSetup}.}
 <<BH45>>=
 passfilter = which(varianceRank<=nFilt)
 adjp = rep(NA_real_, nrow(x))
@@ -671,10 +670,8 @@ As a first attempt at getting an overview over the data, see Figure~\ref{figProj
 <<E325samples>>=
 projection = deCluster$dm[differentially] %*% exprs(x)[differentially, ]
 <<figProjection, fig=TRUE, width=7, height=15>>=
-plotProjection(projection,
-    label = sampleNames(x),
-    col = x$sampleColour,
-    colourMap = sampleColourMap)
+plotProjection(projection, label = sampleNames(x),
+               col = x$sampleColour, colourMap = sampleColourMap)
 @
 %
 \incfig{figProjection}{8cm}{Projection of sample expression profiles on
@@ -720,7 +717,7 @@ xwte = xwt[, unlist(sp)]
 Now we are ready to do it.
 <<doPCA2,cache=TRUE>>=
 thepca = prcomp(t(exprs(xwte)), center = TRUE)
-pcatrsf = function(x) (scale(t(exprs(x)), center = TRUE, scale = FALSE)  %*% thepca$rotation)
+pcatrsf = function(x) scale(t(exprs(x)), center = TRUE, scale = FALSE) %*% thepca$rotation
 stopifnot(all( abs(pcatrsf(xwte) - thepca$x) < 1e-6 ))
 <<myPCA>>=
 myPCAplot = function(x, labels, ...) {
@@ -738,13 +735,13 @@ loadings of the PCA components (Figure~\ref{figpcaloadings}) and the 20 most
 important genes (10 with highest positive coefficients and 10 with the highest negative
 coefficients) in the R output below.
 %
-\incfig{figmds-1}{.6\textwidth}{PCA plot, using WT samples.}{The colour code is as in
+\incfig{figmds-1}{.65\textwidth}{PCA plot, using WT samples.}{The colour code is as in
   Figure~\ref{figProjection}.}
 \incfig{figpcaloadings}{\textwidth}{Sorted loadings (coefficients) of the first two
   PCA vectors.}{The most important genes are shown in the text.}
 %
 <<figpcaloadings,fig=TRUE, width=8, height=4>>=
-par(mfrow=c(1,2))
+par(mfrow = c(1,2))
 for(v in c("PC1", "PC2")) {
   loading = thepca$rotation[, v]
   plot(sort(loading), main = v, ylab = "")
@@ -787,15 +784,15 @@ See Figure~\ref{figmds-4}.
   indicating \Robject{Total.number.of.cells}.}{This may be useful to detect ``batch effects''.}
 
 %--------------------------------------------------------------
-\subsection{Heatmap (WT and FGF4-KO)}
+\subsection{Heatmap of all WT and FGF4-KO samples}
 %--------------------------------------------------------------
 <<hmprep>>=
 mat = exprs(x[selectedFeatures, ])
 rownames(mat) = fData(x)[selectedFeatures, "symbol"]
 <<fighmko,width=14,height=17,fig=TRUE>>=
 heatmap.2(mat, trace = "none", dendrogram = "none", scale = "row",
-          col = bluered(100), keysize=0.9,
-          ColSideColors = x$sampleColour, margins = c(5,7))
+          col = bluered(100), keysize = 0.9,
+          ColSideColors = x$sampleColour, margins = c(7,5))
 @
 
 See Figure~\ref{fighmko}.
@@ -805,7 +802,7 @@ See Figure~\ref{fighmko}.
 \clearpage
 \section{Further analyses of FGF4-KO}\label{sec:fg4ko}
 %----------------------------------------------------------------
-\subsection{FGF4's expression pattern (E3.25)}\label{sec:fgf4:exprpat}
+\subsection{FGF4's expression pattern in E3.25 samples}\label{sec:fgf4:exprpat}
 %----------------------------------------------------------------
 In Figure~\ref{figFGF4expression}, produced by the code below, we
 visualise the expression pattern of FGF4 in the E3.25 samples. The
@@ -813,17 +810,17 @@ striking result is that there is a lot of natural variation in FGF4
 expression even in the WT samples, and some of the lowest levels in
 the WT samples approach the background signal level seen for the KOs.
 %
-<<FGF4expression>>=
+<<figFGF4expression, fig=TRUE, width=10, height=5>>=
 x325  = x[, with(pData(x), Embryonic.day=="E3.25")]
 rv325 = rowVars(exprs(x325))
 featureColours = brewer.pal(sum(FGF4probes), "Dark2")
-<<figFGF4expression, fig=TRUE, width=10, height=5>>=
-py = t(exprs(x325)[FGF4probes,])
+py = t(exprs(x325)[FGF4probes, ])
 matplot(py, type = "p", pch = 15, col = featureColours,
         xlab = "arrays", ylab = expression(log[2] ~ signal),
         ylim = range(py) + c(-0.7, 0))
 legend("topright", legend = rownames(fData(x325))[FGF4probes], fill = featureColours)
-points(seq_len(nrow(py)), rep(par("usr")[3]+0.2, nrow(py)), pch = 16, col = x325$sampleColour)
+points(seq_len(nrow(py)), rep(par("usr")[3]+0.2, nrow(py)),
+       pch = 16, col = x325$sampleColour)
 @
 %
 \incfig{figFGF4expression}{\textwidth}{FGF4 expression.}{The
@@ -847,7 +844,8 @@ showing one value per array, which we obtain by averaging over the two
 %
 <<FGF4expression2>>=
 fgf4Expression = colMeans(exprs(x325)[c("1420085_at", "1420086_x_at"), ])
-fgf4Genotype = factor(x325$genotype, levels = sort(unique(x325$genotype), decreasing = TRUE))
+fgf4Genotype = factor(x325$genotype, 
+                      levels = sort(unique(x325$genotype),decreasing = TRUE))
 @
 <<figFGF4jitter, fig=TRUE, width=5, height=4.5>>=
 plot(x = jitter(as.integer(fgf4Genotype)),
@@ -861,7 +859,7 @@ legend("topright", legend = names(cm), fill = cm)
 \incfig{figFGF4jitter}{0.6\textwidth}{FGF4 expression (microarray signal) in WT and KO samples.}{}
 
 %----------------------------------------------------------------
-\subsection{In E3.25, are the WT samples with low FGF4 expression more
+\subsection{Are the E3.25 WT samples with low FGF4 expression more
   similar to the FGF4-KO samples than those with high FGF4?}
 %----------------------------------------------------------------
 This question is addressed by the code below, whose result is shown in
@@ -869,7 +867,7 @@ Figure~\ref{figFgf4MDS}.
 %
 <<Fgf4MDS>>=
 zero2one = function(x) (x-min(x))/diff(range(x))
-rgb2col = function(x) {x=x/255; rgb(x[, 1], x[, 2], x[, 3])}
+rgb2col = function(x) {x = x/255; rgb(x[, 1], x[, 2], x[, 3])}
 
 colours = x325$sampleColour
 wt325 = x325$genotype=="WT"
@@ -878,7 +876,7 @@ colours[wt325] = colourBar(fgf4Expression)[wt325]
 
 selMDS = order(rv325, decreasing = TRUE)[seq_len(100)]
 <<figFgf4MDS,fig=TRUE,width=6,height=6,results=hide>>=
-MDSplot(x325[selMDS,], col = colours)
+MDSplot(x325[selMDS, ], col = colours)
 <<figFgf4MDSColourBar,fig=TRUE,width=1.5,height=4>>=
 atColour = seq(min(fgf4Expression), max(fgf4Expression), length = 20)
 image(z = rbind(seq(along = atColour)), col = colourBar(atColour),
@@ -1007,42 +1005,40 @@ for(n in c(100, 1000)) {
   KOmean = rowMeans(exprs(x325)[sel, x325$genotype=="FGF4-KO"])
   dists = colSums((exprs(x325)[sel, wt325] - KOmean)^2)^0.5
 
-  pdf(file=sprintf("Hiiragi2013-figNumberOfCells-%d.pdf", n), width=8, height=11)
-  par(mfrow=c(2,1))
-  plot(x325$Total.number.of.cells[wt325], dists, pch=16, main="",
-       xlab="Total number of cells", ylab="Distance to FGF4-KO")
+  pdf(file = sprintf("Hiiragi2013-figNumberOfCells-%d.pdf", n), width = 5, height = 10)
+  par(mfrow = c(2,1))
+  plot(x325$Total.number.of.cells[wt325], dists, pch = 16, main = "",
+       xlab = "Total number of cells", ylab = "Distance to FGF4-KO")
   MDSplot(x325[sel, ], pointlabel = ifelse(x325$genotype=="WT",
-                         paste(x325$Total.number.of.cells), "KO"))
+                                           paste(x325$Total.number.of.cells), "KO"), cex = 1)
   dev.off()
 }
 @
 %
-\incfig{figNumberOfCells-100}{\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
+\incfig{figNumberOfCells-100}{.66\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
   {The 100 features with highest overall variance were used.}
-\incfig{figNumberOfCells-1000}{\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
+\incfig{figNumberOfCells-1000}{.66\textwidth}{Distance of the E3.25 WT samples to the mean profile of FGF4-KO.}
   {The 1000 features with highest overall variance were used.}
 
 %--------------------------------------------------
-\subsection{Heatmap}
+\subsection{Heatmap of E3.25 WT and E3.25 FGF-KO samples}
 %--------------------------------------------------
 For data visualisation, we produce a heatmap (Figure~\ref{figHeatmapKO}) that
 shows the data from the following groups
 <<selectedGroups>>=
 selectedGroups = c("E3.25", "E3.25 (FGF4-KO)")
 xKO = x[, safeSelect(selectedGroups)]
-selectedFeatures = order(rowVars(exprs(xKO)), decreasing=TRUE)[seq_len(100)]
+selectedFeatures = order(rowVars(exprs(xKO)), decreasing = TRUE)[seq_len(100)]
 @
 %
 <<figHeatmapKO, fig=TRUE, width=12, height=16>>=
-myHeatmap(xKO[selectedFeatures, ],
-          collapseDuplicateFeatures=TRUE, haveColDend=TRUE)
+myHeatmap(xKO[selectedFeatures, ], collapseDuplicateFeatures = TRUE, haveColDend = TRUE)
 @
 <<checkClaim2, echo=FALSE>>=
 stopifnot("Fgf4" %in% fData(xKO)$symbol[selectedFeatures])
 @
 %
-\incfig{figHeatmapKO}{\textwidth}{Heatmap of all arrays from groups
-  \Sexpr{paste(selectedGroups, collapse=", ")}.}{The
+\incfig{figHeatmapKO}{\textwidth}{Heatmap of all E3.25 WT and E3.25 FGF-KO samples.}{The
   \Sexpr{length(selectedFeatures)} features with highest overall
   variance were used. One of them shows Fgf4.}
 
@@ -1055,26 +1051,25 @@ x35 = x[, safeSelect(c("E3.5 (FGF4-KO)", "E3.5 (EPI)", "E3.5 (PE)"))]
 f1 = f2 = x35$sampleGroup
 f1[f1=="E3.5 (PE)" ] = NA
 f2[f2=="E3.5 (EPI)"] = NA
-x35$EPI=factor(f1, levels=c("E3.5 (FGF4-KO)", "E3.5 (EPI)"))
-x35$PE =factor(f2, levels=c("E3.5 (FGF4-KO)", "E3.5 (PE)"))
-de = list(`EPI`= rowttests(x35, "EPI"),
-           `PE`= rowttests(x35, "PE"))
-for(i in seq(along=de))
-  de[[i]]$p.adj = p.adjust(de[[i]]$p.value, method="BH")
+x35$EPI = factor(f1, levels = c("E3.5 (FGF4-KO)", "E3.5 (EPI)"))
+x35$PE  = factor(f2, levels = c("E3.5 (FGF4-KO)", "E3.5 (PE)"))
+de = list(`EPI` = rowttests(x35, "EPI"),
+          `PE`  = rowttests(x35, "PE"))
+for(i in seq(along = de))
+  de[[i]]$p.adj = p.adjust(de[[i]]$p.value, method = "BH")
 @
 <<figIndepFiltDeWtKo, fig=TRUE, pdf=FALSE, png=TRUE, width=7.3, height=9>>=
-par(mfcol=c(3,2))
+par(mfcol = c(3,2))
 rkv = rank(-rowVars(exprs(x35)))
 fdrthresh = 0.05
 fcthresh =  1
-for(i in seq(along=de)) {
-  hist(de[[i]]$p.value, breaks=100, col="lightblue", main=names(de)[i], xlab="p")
-  plot(rkv, -log10(de[[i]]$p.value), pch=16, cex=.25, main="",
-       xlab="rank of overall variance", ylab=expression(-log[10]~p))
-  plot(de[[i]]$dm, -log10(de[[i]]$p.value), pch=16, cex=.25, main="",
-      xlab = "average log fold change",
-      ylab = expression(-log[10]~p))
-  abline(v=c(-1,1)*fcthresh[i], col="red")
+for(i in seq(along = de)) {
+  hist(de[[i]]$p.value, breaks = 100, col = "lightblue", main = names(de)[i], xlab = "p")
+  plot(rkv, -log10(de[[i]]$p.value), pch = 16, cex = .25, main = "",
+       xlab = "rank of overall variance", ylab = expression(-log[10]~p))
+  plot(de[[i]]$dm, -log10(de[[i]]$p.value), pch = 16, cex = .25, main = "",
+      xlab = "average log fold change", ylab = expression(-log[10]~p))
+  abline(v = c(-1,1)*fcthresh[i], col = "red")
 }
 @
 %
@@ -1095,14 +1090,14 @@ be caused by ``batch effects'', and we will apply the fold change threshold
 isSig = ((pmin(de$PE$p.adj, de$EPI$p.adj) < fdrthresh) &
          (pmax(abs(de$PE$dm), abs(de$EPI$dm)) > fcthresh))
 table(isSig)
-plot(de$PE$dm, de$EPI$dm, pch=16, asp=1,
-     xlab=expression(log[2]~FGF4-KO / PE),
-     ylab=expression(log[2]~FGF4-KO / EPI),
-     cex=ifelse(isSig, 0.6, 0.1), col=ifelse(isSig, "red", "grey"))
+plot(de$PE$dm, de$EPI$dm, pch = 16, asp = 1,
+     xlab = expression(log[2]~FGF4-KO / PE),
+     ylab = expression(log[2]~FGF4-KO / EPI),
+     cex  = ifelse(isSig, 0.6, 0.1), col = ifelse(isSig, "red", "grey"))
 @ 
 %
 See Figure~\ref{fig2DWTKO}.
-\incfig{fig2DWTKO}{0.5\textwidth}{Differentially expressed genes between
+\incfig{fig2DWTKO}{0.6\textwidth}{Differentially expressed genes between
   FGF4-KO and WT (\Sexpr{paste(names(de), collapse=", ")}) at E3.5.}{Shown is a
   scatterplot of the average fold changes for both comparisons. Large values along the
   $x$-axis indicate a relatively higher level of expression in E3.5 (FGF4-KO) compared to
@@ -1110,18 +1105,19 @@ See Figure~\ref{fig2DWTKO}.
   analogously for the $y$-axis.}
 %
 <<writetab35>>=
-df = cbind(fData(x35)[isSig,], `log2FC KO/PE` = de$PE$dm[isSig], `log2FC KO/EPI` = de$EPI$dm[isSig])
-write.csv(df, file="differentially_expressed_E3.5_vs_FGF4-KO.csv")
-ctrls = grep("^AFFX", rownames(df), value=TRUE)
+df = cbind(fData(x35)[isSig, ], `log2FC KO/PE` = de$PE$dm[isSig],
+           `log2FC KO/EPI` = de$EPI$dm[isSig])
+write.csv(df, file = "differentially_expressed_E3.5_vs_FGF4-KO.csv")
+ctrls = grep("^AFFX", rownames(df), value = TRUE)
 @ 
  
 \subsubsection{The probes for FGF4}
 Let us look at the data for the four probes annotated to FGF4.
 <<figFGF4ProbesInKO, fig=TRUE, width=8, height=7>>=
-par(mfrow=c(2,2))
+par(mfrow = c(2,2))
 for(p in which(FGF4probes))
-  plot(exprs(x35)[p,], type="p", pch=16, col=x35$sampleColour, 
-       main=rownames(fData(x325))[p], ylab=expression(log[2]~expression)) 
+  plot(exprs(x35)[p, ], type = "p", pch = 16, col = x35$sampleColour, 
+       main = rownames(fData(x325))[p], ylab = expression(log[2]~expression)) 
 <<checkClaim3>>=
 stopifnot(sum(FGF4probes)==4)
 @ 
@@ -1137,10 +1133,10 @@ analysis. Let us plot the first 8 of them (see Figure~\ref{figCtrls}).
 <<figCtrls, echo=FALSE>>=
 stopifnot(length(ctrls)>=8)
 <<figCtrls, fig=TRUE, width=8, height=10>>=
-par(mfcol=c(4, 2))
+par(mfcol = c(4, 2))
 for(p in ctrls[1:8])
-  plot(exprs(x35)[p,], type="p", pch=16, col=x35$sampleColour, 
-       main=p, ylab=expression(log[2]~expression)) 
+  plot(exprs(x35)[p, ], type = "p", pch = 16, col = x35$sampleColour, 
+       main = p, ylab = expression(log[2]~expression)) 
 @ 
 %
 \incfig{figCtrls}{\textwidth}{Behaviour of some control probe sets.}{}
@@ -1160,11 +1156,11 @@ fts = lapply(keggpw, function(ps) {
    ovlGenes = intersect(pwGenes, sigGenes)
    n2  = length(pwGenes)
    nov = length(ovlGenes)
-   mat = matrix(c(ntot-n1-n2+nov, n2-nov, n1-nov, nov), ncol=2, nrow=2,
-      dimnames=list(`pathway`=c("no","yes"), `diff. expressed`=c("no","yes")))
+   mat = matrix(c(ntot-n1-n2+nov, n2-nov, n1-nov, nov), ncol = 2, nrow = 2,
+                dimnames = list(`pathway` = c("no","yes"), `diff. expressed` = c("no","yes")))
    ft = fisher.test(mat)
-   list(mat=mat, p.value=ft$p.value, estimate=ft$estimate, 
-        genes=paste(sort(ovlGenes), collapse=", ")) 
+   list(mat = mat, p.value = ft$p.value, estimate = ft$estimate, 
+        genes = paste(sort(ovlGenes), collapse = ", ")) 
    })
 @ 
 Kolmogorov-Smirnov tests against KEGG pathways.
@@ -1174,7 +1170,7 @@ dat  = de$PE$dm+de$EPI$dm
 fts = lapply(keggpw, function(ps) {
   inpw = rownames(fData(x35)) %in% ps
   ft   = ks.test( dat[inpw], dat[!inpw] )
-  list(p.value=ft$p.value, statistic=ft$statistic, n=sum(inpw)) 
+  list(p.value = ft$p.value, statistic = ft$statistic, n = sum(inpw)) 
 })
 @ 
 %
@@ -1189,7 +1185,7 @@ In addition, let us add those pathways with the strongest enrichment signal:
 % represent various parts of metabolism.
 <<pws2,eval=FALSE,echo=FALSE>>=
 pws = c(pws, names(fts)[ sapply(fts, function(x) 
-    with(x, (sum(mat[2,])<=40) && (p.value<0.01) && (estimate>=2))) ] )
+    with(x, (sum(mat[2, ])<=40) && (p.value<0.01) && (estimate>=2))) ] )
 @ 
 <<pws2>>=
 pws = unique( c(pws, names(fts)[ sapply(fts, function(x) 
@@ -1200,44 +1196,41 @@ Make an online query at the KEGG database.
 %
 <<pwInfo,cache=TRUE>>=
 query  = paste0("mmu", pws)
-query  = split(query, seq(along=query) %/% 10)
-pwInfo = unlist(lapply(query, keggGet), recursive=FALSE)
+query  = split(query, seq(along = query) %/% 10)
+pwInfo = unlist(lapply(query, keggGet), recursive = FALSE)
 @ 
 <<assertion,echo=FALSE>>=
 stopifnot(all(pws %in% names(fts)))
 stopifnot(length(pwInfo)==length(pws))
 <<pwImgs,cache=TRUE,eval=FALSE,echo=FALSE>>=
-pwImgs = lapply(query, keggGet, option="image")
+pwImgs = lapply(query, keggGet, option = "image")
 stopifnot(length(pwImgs)==length(pws))
 @ 
 <<xtable,eval=FALSE,echo=FALSE>>=
-df=data.frame(
+df = data.frame(
   `id`   = pws,
-  `name` = sub(" - Mus musculus (mouse)", "", sapply(pwInfo, `[[`, "NAME"), fixed=TRUE),
-  `n`    = sapply(pws, function(x) sum(fts[[x]]$mat[2,])),
+  `name` = sub(" - Mus musculus (mouse)", "", sapply(pwInfo, `[[`, "NAME"), fixed = TRUE),
+  `n`    = sapply(pws, function(x) sum(fts[[x]]$mat[2, ])),
   `differentially expressed genes` = sapply(pws, function(x) fts[[x]]$genes),
   `p`          = as.character(signif(sapply(pws, function(x) fts[[x]]$p.value),  2)),
   `odds-ratio` = as.character(signif(sapply(pws, function(x) fts[[x]]$estimate), 2)),
-  stringsAsFactors = FALSE, check.names=FALSE)
+  stringsAsFactors = FALSE, check.names = FALSE)
 <<xtable>>=
-df=data.frame(
+df = data.frame(
   `id`   = pws,
-  `name` = sub(" - Mus musculus (mouse)", "", sapply(pwInfo, `[[`, "NAME"), fixed=TRUE),
+  `name` = sub(" - Mus musculus (mouse)", "", sapply(pwInfo, `[[`, "NAME"), fixed = TRUE),
   `n`         =                     sapply(pws, function(x) fts[[x]]$n),
   `p`         = as.character(signif(sapply(pws, function(x) fts[[x]]$p.value),  2)),
   `statistic` = as.character(signif(sapply(pws, function(x) fts[[x]]$statistic), 2)),
-  stringsAsFactors = FALSE, check.names=FALSE)
+  stringsAsFactors = FALSE, check.names = FALSE)
 <<printxtable>>=
 print(xtable(df,
   caption = paste("Gene set enrichment analysis of selected KEGG pathways, for the",
                    "differentially expressed genes between E3.5 FGF-4 KO and WT samples.",
                    "n: number of microarray features annotated to genes in the pathway."),
-  label  ="tab_KEGG",
-  align  = c("l", "l","p{4cm}","r","r","r")),
-  type="latex", 
-  file="tab_KEGG.tex")
+  label = "tab_KEGG", align = c("l", "l","p{4cm}","r","r","r")),
+  type = "latex", file = "tab_KEGG.tex")
 @
-%   # align  = c("l", "l","p{4cm}","r","p{6cm}","r","r")),
 \input{tab_KEGG.tex}
 Table~\ref{tab_KEGG} shows 
 \begin{enumerate}
@@ -1246,15 +1239,15 @@ Table~\ref{tab_KEGG} shows
 \end{enumerate}
 We visualize their data in Figure~\ref{figShowPws}, see code below.
 <<figShowPws,fig=TRUE,png=TRUE,pdf=FALSE,width=16,height=20>>=
-par(mfrow=c(7,4)); stopifnot(length(pws)<=42)
-for(i in seq(along=pws)) {
-  inpw = factor(ifelse(rownames(fData(x35)) %in% keggpw[[pws[i]]], "in pathway", "outside"))
+par(mfrow = c(7,4)); stopifnot(length(pws)<=42)
+for(i in seq(along = pws)) {
+  inpw = factor(ifelse(rownames(fData(x35)) %in% keggpw[[pws[i]]],"in pathway","outside"))
   ord  = order(inpw)
   enr  = paste0("p=", df$p[i], if(as.numeric(df$p[i])<0.05)
                                   paste(" D=", df$statistic[i]) else "")
-  multiecdf( (de$PE$dm+de$EPI$dm) ~ inpw, xlim=c(-1,1)*3, 
-            main=paste(df$name[i], enr, sep="\n"),
-            xlab="mean difference between FGF4-KO and wildtype samples" )
+  multiecdf( (de$PE$dm+de$EPI$dm) ~ inpw, xlim = c(-1,1)*3,
+             main = paste(df$name[i], enr, sep = "\n"),
+             xlab = "mean difference between FGF4-KO and wildtype samples" )
 }
 @ 
 \incfig{figShowPws}{\textwidth}{Differentially expressed genes between
@@ -1292,7 +1285,7 @@ Confidence intervals (CIs) were estimated by bootstrapping (sampling with replac
 Let's define R functions for this.
 <<defJSD>>=
 H = function(p) -sum(p*log2(p))
-JSD = function(m, normalize=TRUE) {
+JSD = function(m, normalize = TRUE) {
   stopifnot(is.matrix(m), all(dim(m)>1))
   if(normalize)
     m = m/rowSums(m)
@@ -1331,11 +1324,11 @@ computeDivergences = function(y, indices, fun) {
   numStrata = max(strata)
   stopifnot(setequal(strata, seq_len(numStrata)))
 
-  orderedFeatures = order(rowVars(t(exprVals)), decreasing=TRUE)
+  orderedFeatures = order(rowVars(t(exprVals)), decreasing = TRUE)
   sapply(numberFeatures, function(n) {
     selFeat = orderedFeatures[seq_len(n)]
     sapply(seq_len(numStrata), function(s)
-             fun(exprVals[strata==s, selFeat, drop=FALSE]))
+             fun(exprVals[strata==s, selFeat, drop = FALSE]))
   })
 }
 <<strata>>=
@@ -1348,12 +1341,12 @@ stopifnot(!any(is.na(x$strata)))
 Now we are ready to go, we use the bootstrap to assess variability in our divergene estimates:
 <<doJSD,cache=TRUE>>=
 bootJSD = boot(data = cbind(x$strata, t(exprs(x))),
-               statistic = function(...) computeDivergences(..., fun=JSD),
+               statistic = function(...) computeDivergences(..., fun = JSD),
                R = 100, strata = x$strata)
 dim(bootJSD$t) = c(dim(bootJSD$t)[1], dim(bootJSD$t0))
 <<doSD,cache=TRUE>>=
 bootSDV = boot(data = cbind(x$strata, t(exprs(x))),
-               statistic = function(...) computeDivergences(..., fun=SDV),
+               statistic = function(...) computeDivergences(..., fun = SDV),
                R = 100, strata = x$strata)
 dim(bootSDV$t) = c(dim(bootSDV$t)[1], dim(bootSDV$t0))
 @
@@ -1361,22 +1354,22 @@ dim(bootSDV$t) = c(dim(bootSDV$t)[1], dim(bootSDV$t0))
 The resulting values (mean and distribution indicated by boxplot) are shown in Figure~\ref{fig-JSD}.
 %
 <<fig-JSD,fig=TRUE,width=10,height=14>>=
-par(mfrow=c(length(numberFeatures),2))
+par(mfrow = c(length(numberFeatures),2))
 colores = sampleColourMap[levels(x$sampleGroup)]
-for(i in seq(along=numberFeatures)) {
+for(i in seq(along = numberFeatures)) {
   for(what in c("JSD", "SDV")){
-    obj = get(paste("boot", what, sep=""))
-    boxplot(obj$t[, , i], main=sprintf("numberFeatures=%d", numberFeatures[i]),
-            col=colores, border=colores, ylab=what, xaxtb="n")
+    obj = get(paste("boot", what, sep = ""))
+    boxplot(obj$t[, , i], main = sprintf("numberFeatures=%d", numberFeatures[i]),
+            col = colores, border = colores, ylab = what, xaxtb = "n")
     px = seq_len(ncol(obj$t))
-    text(x=px, y=par("usr")[3], labels=levels(x$sampleGroup),
-         xpd=NA, srt=45, adj=c(1,0.5), col=colores)
-    points(px, obj$t0[, i], pch=16)
+    text(x = px, y = par("usr")[3], labels = levels(x$sampleGroup),
+         xpd = NA, srt = 45, adj = c(1,0.5), col = colores)
+    points(px, obj$t0[, i], pch = 16)
   }
 } 
 @
 %
-\incfig{fig-JSD}{\textwidth}{Jensen-Shannon divergences}{JSD is
+\incfig{fig-JSD}{\textwidth}{Jensen-Shannon divergences.}{JSD is
   shown on the left; on the right, for comparison we performed the same
   analysis with \emph{within-group standard deviation} as another
   measure of group spread.}
@@ -1400,7 +1393,7 @@ for(i in seq(along=numberFeatures)) {
   \end{center}
 \end{figure}
 
-\subsection{Compare microarray data with qPCR results}
+\subsection{Comparison o microarray data with qPCR results}
 First, let us plot the microarray data for all probesets annotated to the genes shown in
 Figure~\ref{FigTemporalChangeLineageMarkerExp}. We write the output into an extra PDF file,
 \texttt{exemplaryGenes.pdf}.
@@ -1413,13 +1406,13 @@ xs$sampleGroup = factor(xs$sampleGroup)
 <<myBoxplot>>=
 myBoxplot = function(ps) {
   fac = factor(pData(xs)$sampleGroup)
-  boxplot(exprs(xs)[ps,] ~ fac, col=sampleColourMap[levels(fac)], lim=c(2,14),
-          main=sprintf("%s (%s)", fData(x)[ps, "symbol"], ps), show.names=FALSE)
-  text(seq(along=levels(fac)), par("usr")[3] - diff(par("usr")[3:4])*0.02,
-       levels(fac), xpd=NA, srt=90, adj=c(1,0.5), cex=0.8)
+  boxplot(exprs(xs)[ps, ] ~ fac, col = sampleColourMap[levels(fac)], lim = c(2,14),
+          main = sprintf("%s (%s)", fData(x)[ps, "symbol"], ps), show.names = FALSE)
+  text(seq(along = levels(fac)), par("usr")[3] - diff(par("usr")[3:4])*0.02,
+       levels(fac), xpd = NA, srt = 90, adj = c(1,0.5), cex = 0.8)
 }
 <<showGenes,results=hide>>=
-exemplaryGenes = read.table(header=TRUE, stringsAsFactors=FALSE, text = "
+exemplaryGenes = read.table(header = TRUE, stringsAsFactors = FALSE, text = "
 symbol   thclass  probeset
 Gata6      C-1 1425464_at
 Tom1l1     C-1 1439337_at
@@ -1442,10 +1435,10 @@ Tdgf1    EPI-2 1450989_at
 Cldn4    EPI-4 1418283_at
 Enox1    EPI-4 1436799_at")
 
-pdf(file="exemplaryGenes.pdf", width=8, height=11)
-par(mfrow=c(5,3))
+pdf(file = "exemplaryGenes.pdf", width = 8, height = 11)
+par(mfrow = c(5,3))
 for(i in seq_len(nrow(exemplaryGenes))) {
-  wh = featureNames(x)[fData(x)[, "symbol"]==exemplaryGenes[i,"symbol"]]
+  wh = featureNames(x)[fData(x)[, "symbol"]==exemplaryGenes[i, "symbol"]]
   stopifnot(length(wh)>=1)
   sapply(wh, myBoxplot)
 }
@@ -1501,7 +1494,7 @@ each of the conditions in \Robject{cond1} versus each of the conditions in
 \Robject{cond2}.
 %
 <<avglfc>>=
-greater = function(cond1, cond2, thresh=2) {
+greater = function(cond1, cond2, thresh = 2) {
   stopifnot(all(cond1 %in% names(groups)), all(cond2 %in% names(groups)))
   rm1 = lapply(groups[cond1], function(j) rowMeans(exprs(x)[, j]))
   rm2 = lapply(groups[cond2], function(j) rowMeans(exprs(x)[, j]))
@@ -1519,9 +1512,9 @@ arrays corresponds to 0, and the highest value to 1. (In the code below, we actu
 some statistical robustness.)
 %
 <<minLevel,cache=TRUE>>=
-xquantiles = apply(exprs(x), 1, quantile, probs=c(0.025, 0.975))
-minLevel = xquantiles[1,]
-maxLevel = xquantiles[2,]
+xquantiles = apply(exprs(x), 1, quantile, probs = c(0.025, 0.975))
+minLevel = xquantiles[1, ]
+maxLevel = xquantiles[2, ]
 trsf2Zero2One = function(x) {
   x = (x-minLevel)/(maxLevel-minLevel)
   x[x<0] = 0
@@ -1538,7 +1531,7 @@ checking whether more than 90\% of the arrays in the condition(s) specified by
 \Robject{cond} have values below \Robject{minLevel} + \Robject{thresh}.
 %
 <<isOff>>=
-isOff = function(cond, thresh=2) {
+isOff = function(cond, thresh = 2) {
   stopifnot(all(cond %in% names(groups)))
   samps = unlist(groups[cond])
   rowSums(exprs(x)[, samps] > minLevel+thresh) <= ceiling(length(samps) * 0.1)
@@ -1550,10 +1543,10 @@ Now we can do the classification.
 <<classification>>=
   `C-1` =  greater("E3.25", c("E3.5 (EPI)", "E4.5 (EPI)", "E3.5 (PE)", "E4.5 (PE)"))
 `EPI-2` =  greater("E3.5 (EPI)", c("E3.25")) &
-           greater("E3.5 (EPI)", "E4.5 (EPI)", thresh=0.5) &
+           greater("E3.5 (EPI)", "E4.5 (EPI)", thresh = 0.5) &
            isOff("E3.5 (PE)")  & isOff("E4.5 (PE)" )
  `PE-2` =  greater("E3.5 (PE)",  c("E3.25")) &
-           greater("E3.5 (PE)",  "E4.5 (PE)", thresh=0.5)  & 
+           greater("E3.5 (PE)",  "E4.5 (PE)", thresh = 0.5)  & 
            isOff("E3.5 (EPI)") & isOff("E4.5 (EPI)")
 `EPI-4` = (greater("E4.5 (EPI)", c("E3.25", "E3.5 (EPI)")) &
            isOff(c("E3.25", "E3.5 (EPI)")) & 
@@ -1561,19 +1554,19 @@ Now we can do the classification.
  `PE-4` = (greater("E4.5 (PE)", c("E3.25", "E3.5 (PE)")) &
            isOff(c("E3.25", "E3.5 (PE)")) & 
            isOff("E4.5 (EPI)"))
-`EPI-3` = (greater("E3.5 (EPI)", "E3.25", thresh=0.5) &
-           greater("E4.5 (EPI)", "E3.5 (EPI)", thresh=0.5) &
-           greater("E4.5 (EPI)", "E3.25", thresh=3)   & 
+`EPI-3` = (greater("E3.5 (EPI)", "E3.25", thresh = 0.5) &
+           greater("E4.5 (EPI)", "E3.5 (EPI)", thresh = 0.5) &
+           greater("E4.5 (EPI)", "E3.25", thresh = 3)   & 
            isOff("E4.5 (PE)") & !`EPI-4`)
- `PE-3` = (greater("E3.5 (PE)",  "E3.25", thresh=0.5) &
-           greater("E4.5 (PE)",  "E3.5 (PE)",  thresh=0.5) &
-           greater("E4.5 (PE)",  "E3.25", thresh=3) & 
+ `PE-3` = (greater("E3.5 (PE)",  "E3.25", thresh = 0.5) &
+           greater("E4.5 (PE)",  "E3.5 (PE)",  thresh = 0.5) &
+           greater("E4.5 (PE)",  "E3.25", thresh = 3) & 
            isOff("E4.5 (EPI)") & !`PE-4`)
 thclasses = cbind(`C-1`, `EPI-2`, `EPI-3`, `EPI-4`, `PE-2`,  `PE-3`,  `PE-4`)
 @ 
 We want each feature to be in exactly one group:
 <<onegroup>>=
-multiclass = thclasses[rowSums(thclasses)>1,, drop=FALSE]
+multiclass = thclasses[rowSums(thclasses)>1,, drop = FALSE]
 stopifnot(nrow(multiclass)==0)
 @ 
 The group sizes:
@@ -1586,9 +1579,9 @@ fgr = apply(thclasses, 2, which)
 xsub = xsc[unlist(fgr), unlist(agr)]
 mat = exprs(xsub)
 rownames(mat) = fData(xsub)[, "symbol"]
-myHeatmap2(mat, keeprownames=TRUE,
-     rowGroups=factor(rep(seq(along=fgr), listLen(fgr))),
-     colGroups=factor(rep(seq(along=agr), listLen(agr))))
+myHeatmap2(mat, keeprownames = TRUE,
+           rowGroups = factor(rep(seq(along = fgr), listLen(fgr))),
+           colGroups = factor(rep(seq(along = agr), listLen(agr))))
 @ 
 %
 \incfig{figHeatmapthclasses}{9.5cm}{Heatmap of all classes}{of
@@ -1604,9 +1597,9 @@ The heatmap is shown in Figure~\ref{figHeatmapthclasses}.
 \subsubsection{Table export}
 
 <<writecsv>>=
-out = do.call(rbind, lapply(seq(along=fgr), function(i) 
-  cbind(`class`=names(fgr)[i], fData(xsc)[fgr[[i]],])))
-write.csv(out, file="featureclassification.csv")
+out = do.call(rbind, lapply(seq(along = fgr), function(i) 
+    cbind(`class` = names(fgr)[i], fData(xsc)[fgr[[i]], ])))
+write.csv(out, file = "featureclassification.csv")
 @ 
 
 \subsubsection{Comparison with manual classification} 
@@ -1643,23 +1636,21 @@ xq$sampleColours = sampleColourMap[sub("[[:digit:]]+ ", "", sampleNames(xq))]
 stopifnot(!any(is.na(xq$sampleColours)))
 @ 
 %
-Define a function \Rfunction{myHeatmap3} that creates heatmaps.
+Next, we define a function \Rfunction{myHeatmap3} to create heatmaps
 <<myHeatmap3>>=
-myHeatmap3 = function(x, log=TRUE, 
-  col=colorRampPalette(brewer.pal(9, "Blues"))(ncol), ncol=100, ...) {
+myHeatmap3 = function(x, log = TRUE, 
+  col = colorRampPalette(brewer.pal(9, "Blues"))(ncol), ncol = 100, ...) {
   mat = exprs(x)
   if(log){
     mat[mat<1] = 1
     mat = log10(mat)
   }
   rownames(mat) = fData(x)[, "symbol"]
-  heatmap.2(mat, trace="none", dendrogram="none", scale="none", 
-          col=col,
-          keysize=0.9,
-          ColSideColors=x$sampleColour, margins=c(5,7), ...)
+  heatmap.2(mat, trace = "none", dendrogram = "none", scale = "none", col = col,
+            keysize = 0.9, ColSideColors = x$sampleColour, margins = c(5,7), ...)
 }
 @ 
-Call the function on \Robject{xq}.
+and use it to visualize data in \Robject{xq}.
 <<fighm1,width=14,height=10,fig=TRUE>>=
 myHeatmap3(xq)
 @ 
@@ -1672,8 +1663,8 @@ See Figure~\ref{fighm1}.
 
 \subsection{Heatmaps for the seven selected genes and selected samples}
 <<fighm2,width=14,height=7,fig=TRUE>>=
-selectedGenes=c("Col4a1", "Lamab1", "Cubn", "Gata4", "Serpinh1", "Foxq1", "Aldh18a1")
-myHeatmap3(xq[selectedGenes,])
+selectedGenes = c("Col4a1", "Lamab1", "Cubn", "Gata4", "Serpinh1", "Foxq1", "Aldh18a1")
+myHeatmap3(xq[selectedGenes, ])
 <<checkAssertion,echo=FALSE>>=
 stopifnot(length(selectedGenes)==7)
 @ 
@@ -1686,7 +1677,7 @@ selectedSamples = (xq$Cell.type %in% c("ICM", "PE"))
 table(xq$sampleGroup[selectedSamples])
 sxq = xq[selectedGenes, selectedSamples]
 groups = c("E3.25", "E3.5 (PE)", "E4.5 (PE)")
-sxq$fsampleGroup = factor(sxq$sampleGroup, levels=groups)
+sxq$fsampleGroup = factor(sxq$sampleGroup, levels = groups)
 stopifnot(!any(is.na(sxq$fsampleGroup)))
 @ 
 <<fighm3,width=14,height=7,fig=TRUE>>=
@@ -1694,32 +1685,32 @@ myHeatmap3(sxq)
 @ 
 See Figure~\ref{fighm3}.
 \incfig{fighm3}{\textwidth}{Heatmap for the 7 selected genes and the
-  samples \Sexpr{paste(sort(unique(xq$sampleGroup[selectedSamples])), collapse=",")}.}{Rows and columns are ordered by clustering dendrogram.}
+  E3.25/E3.5/E4.5 PE samples.}{Rows and columns are ordered by clustering dendrogram.}
 
 \subsection{Distribution of the data and discretisation}\label{sec:disc}
 \incfig{figthr}{\textwidth}{Visualisation of the qPCR data for the seven
   genes.}{Shown are also the within-group means (horizontal dotted light grey lines) and the
   discretisation thresholds (horizontal solid dark grey lines).}
 The qPCR expression levels in \Robject{sxq} are compared, separately for each gene,
-against the midpoint of the means of successive groups (\Sexpr{paste(groups, collapse=', ')}).
+against the midpoint of the means of successive groups (\Sexpr{paste(groups, collapse = ', ')}).
 This is illustrated in Figure~\ref{figthr}.
 %
 <<discr,cache=TRUE>>=
 groupmedians = t(apply(exprs(sxq), 1, function(v) tapply(v, sxq$sampleGroup, median)))
 stopifnot(identical(colnames(groupmedians), groups), length(groups)==3)
 discrthreshs = (groupmedians[, 2:3] + groupmedians[, 1:2]) / 2
-stst = sapply(split(seq(along=sxq$sampleGroup), sxq$sampleGroup), 
-  function(v) {i1=head(v,1); i2=tail(v,1); stopifnot(identical(v, i1:i2)); c(i1,i2)})
+stst = sapply(split(seq(along = sxq$sampleGroup), sxq$sampleGroup), 
+    function(v) {i1 = head(v,1); i2 = tail(v,1); stopifnot(identical(v, i1:i2)); c(i1,i2)})
 <<show>>=
 groupmedians
 discrthreshs
 <<figthr,width=6,height=7,fig=TRUE>>=
-op = par(mfrow=c(nrow(sxq), 1), mai=c(0.1, 0.7, 0.01, 0.01))
+op = par(mfrow = c(nrow(sxq), 1), mai = c(0.1, 0.7, 0.01, 0.01))
 for(j in seq_len(nrow(sxq))) {
-  plot(exprs(sxq)[j,], type="n", xaxt="n", ylab=fData(sxq)$symbol[j])
-  segments(x0=stst[1,],    x1=stst[2,],    y0=groupmedians[j,],   col="#808080", lty=3)
-  segments(x0=stst[1,1:2], x1=stst[2,2:3], y0=discrthreshs[j,], col="#404040")
-  points(exprs(sxq)[j,], pch=16, col=sxq$sampleColour)
+  plot(exprs(sxq)[j, ], type = "n", xaxt = "n", ylab = fData(sxq)$symbol[j])
+  segments(x0 = stst[1, ], x1 = stst[2, ], y0 = groupmedians[j, ], col = "#808080", lty=3)
+  segments(x0 = stst[1,1:2], x1 = stst[2,2:3], y0 = discrthreshs[j, ], col = "#404040")
+  points(exprs(sxq)[j, ], pch = 16, col = sxq$sampleColour)
 }
 par(op)
 @ 
@@ -1739,14 +1730,14 @@ are represented by white, light blue, dark blue.
 <<discretisation1>>=
 discretize = function(x) {
   exprs(x) = t(sapply(seq_len(nrow(exprs(x))), function(r) {
-      as.integer(cut(exprs(x)[r, ], breaks=c(-Inf, discrthreshs[r,],+Inf)))
+      as.integer(cut(exprs(x)[r, ], breaks = c(-Inf, discrthreshs[r, ],+Inf)))
   }))
   return(x)
 }
 <<discretisation2,cache=FALSE>>=
 sxqd = discretize(sxq)
 <<fighmd,width=12,height=5,fig=TRUE>>=
-myHeatmap3(sxqd, log=FALSE, Colv=FALSE, Rowv=FALSE, key=FALSE, ncol=3)
+myHeatmap3(sxqd, log = FALSE, Colv = FALSE, Rowv = FALSE, key = FALSE, ncol = 3)
 @ 
 %
 \incfig{fighmd}{\textwidth}{Heatmap for the discretized values.}{Rows and
@@ -1783,7 +1774,7 @@ costfun2 = function(x, sg) {
 
 perms = permutations(nrow(sxq), nrow(sxq))
 bruteForceOptimisation = function(fun, samps) {
-  if (missing(samps)) samps=rep(TRUE, ncol(sxqd))
+  if (missing(samps)) samps = rep(TRUE, ncol(sxqd))
   apply(perms, 1, function(i) fun(exprs(sxqd)[i, samps], sxq$sampleGroup[samps]))
 }
 
@@ -1795,7 +1786,7 @@ whopt  = lapply(costs, function(v) which(v==min(v)))
 
 <<fighmd>>=
 outf = file("fighmd.tex", open="w")
-for(i in seq(along=costs)) {
+for(i in seq(along = costs)) {
   sxqdsub = switch(i,
      { 
        rv = sxqd[, sxqd$sampleGroup %in% groups[2] ]
@@ -1810,17 +1801,17 @@ for(i in seq(along=costs)) {
   columnOrder = order(sxqdsub$sampleGroup, colSums(exprs(sxqdsub)))
   for(w in whopt[[i]]) {
     fn = sprintf("fighmd-%d-%d.pdf", i, w)
-    pdf(fn, width=7, height=3)
-    myHeatmap3(sxqdsub[ perms[w, ], columnOrder], log=FALSE, Colv=FALSE, Rowv=FALSE,
-               key=FALSE, ncol=2, breaks=seq(0.5, 2.5, by=1))
+    pdf(fn, width = 7, height = 3)
+    myHeatmap3(sxqdsub[perms[w, ], columnOrder], log = FALSE, Colv = FALSE, Rowv = FALSE,
+               key = FALSE, ncol = 2, breaks = seq(0.5, 2.5, by = 1))
     dev.off()
-    cat("\\includegraphics[width=0.49\\textwidth]{", fn, "}\n", file=outf, sep="")
+    cat("\\includegraphics[width=0.49\\textwidth]{", fn, "}\n", file = outf, sep = "")
   }
 }
 close(outf)
 @ 
 <<printcosts>>=
-for(i in seq(along=costs)) {
+for(i in seq(along = costs)) {
   k = unique(costs[[i]][whopt[[i]]])
   stopifnot(length(k)==1)
   cat(sprintf("%14s: cost %g\n", names(costs)[[i]], k))
@@ -1836,9 +1827,8 @@ Repeat the above with bootstrapping.
 <<boot-takes-a-long-time,cache=TRUE>>=
 bopt = lapply(list(costfun1, costfun2), function(fun) {
   boot(data = seq_len(ncol(sxqd)), 
-       statistic = function(dummy, idx) {
-         min(bruteForceOptimisation(fun, idx))
-       }, R=250) 
+       statistic = function(dummy, idx) min(bruteForceOptimisation(fun, idx)),
+       R = 250) 
 })
 @ 
 % Note: 'length(idx)' above will always be equal to 'ncol(x)', since 'boot' samples with duplicates
@@ -1848,7 +1838,7 @@ bopt = lapply(list(costfun1, costfun2), function(fun) {
 names(bopt) = names(costs)
 lapply(bopt, `[[`, "t0")
 multiecdf(lapply(bopt, `[[`, "t"))
-t.test(x=bopt[[1]]$t, y=bopt[[2]]$t)
+t.test(x = bopt[[1]]$t, y = bopt[[2]]$t)
 @ 
 %
 See Figure~\ref{figboot}.
@@ -1876,12 +1866,12 @@ labeledGroups = with(pData(xql), list(
   `E4.5_low`  = which(Label=="Low"  & Embryonic.day=="E4.5")))
 
 labeledSampleColours = rep(NA_character_, ncol(xql))
-for(i in seq(along=labeledGroups))
-  labeledSampleColours[labeledGroups[[i]]] = labeledSampleColourMap[names(labeledGroups)[i]]
+for(i in seq(along = labeledGroups))
+ labeledSampleColours[labeledGroups[[i]]] = labeledSampleColourMap[names(labeledGroups)[i]]
 xql$sampleColours = labeledSampleColours
 
 md = isoMDS( dist(t(log(exprs(xql),2))))$points
-plot(md, col=xql$sampleColours, pch=16, asp=1, xlab="",ylab="")
+plot(md, col = xql$sampleColours, pch = 16, asp = 1, xlab = "",ylab = "")
 @
 \incfig{mdsplot}{.6\textwidth}{Multi-dimensional scaling plot.}{Light red and light green dots represent E3.5 labeled and unlabeled cells, while red and green ones represent E4.5 labeled and unlabeled cells, respectively.}
 
@@ -1899,14 +1889,14 @@ Fgfr3 = c("1421841_at")
 Fgfr4 = c("1418596_at")
 
 correlationPlot = function(ID){
-  xsl=xs[ID, ]
-  mat=exprs(xsl)
+  xsl = xs[ID, ]
+  mat = exprs(xsl)
   rownames(mat) = fData(xsl)[, "symbol"]
-  plot(t(mat), pch=16, asp=1, cex=1.25, cex.lab=1.2, col=xs$sampleColour,
-       xlim=c(2,12), ylim=c(3,11))
+  plot(t(mat), pch = 16, asp = 1, cex = 1.25, cex.lab = 1.2, col = xs$sampleColour,
+       xlim = c(2,12), ylim = c(3,11))
 }
 
-par(mfrow=c(1,4))
+par(mfrow = c(1,4))
 correlationPlot(c(Fgf4,Fgfr2))
 correlationPlot(c(Fgf4,Fgfr3))
 correlationPlot(c(Fgf3,Fgfr3))

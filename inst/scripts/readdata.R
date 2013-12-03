@@ -6,10 +6,10 @@ library("mouse4302.db")
 CELdir    = tempdir()
 CELfiles  = getAE("E-MTAB-1681", path = CELdir, type = "raw")$rawFiles
 
-## ---------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------
 ## Read array metadata table and fill empty cells in the columns Embryonic.day
 ## and Total.number.of.cells by the values implied ## by the non-empty cells above
-## ---------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------
 
 fillColumn = function(x, empty){
   wh  = which(!empty(x))
@@ -43,15 +43,15 @@ readCSVtable = function(name) {
   return(x)
 }
 
-## ------------------------------ Script starts here -------------------------------
+## -------------------------------- Script starts here ---------------------------------
 
 pdata = readCSVtable(system.file("scripts", "annotation.csv", package = "Hiiragi2013"))
 
 pdata$genotype = as.factor(ifelse(grepl("_KO$", pdata$File.name), "FGF4-KO", "WT"))
 
-## ---------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------
 ## Read the CEL files
-## ---------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------
 
 fileNames = paste(pdata$File.name, "CEL", sep = ".")
 fileExists = (fileNames %in% CELfiles)
@@ -65,9 +65,9 @@ pData(a)$ScanDate = factor(as.Date(sub( "10/16/09", "2010-09-16",
 
 save(a, file="a.rda")
 
-## ---------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------
 ## Normalize with RMA
-## ---------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------
 
 x = rma(a)
 
@@ -75,7 +75,7 @@ x = rma(a)
 ## fData(x)$symbol:   gene symbols where available, Affy feature ID otherwise
 ## fData(x)$genename: a more verbose gene description
 
-annotateGene = function( db, what, missing) {
+annotateGene = function(db, what, missing) {
   tab = toTable(db[ featureNames(x) ])
   mt = match( featureNames(x), tab$probe_id)
   ifelse(is.na(mt), missing, tab[[what]][mt])
