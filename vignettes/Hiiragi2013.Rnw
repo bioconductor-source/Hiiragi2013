@@ -1393,7 +1393,7 @@ for(i in seq(along = numberFeatures)) {
   \end{center}
 \end{figure}
 
-\subsection{Comparison o microarray data with qPCR results}
+\subsection{Comparison of microarray data with qPCR results}
 First, let us plot the microarray data for all probesets annotated to the genes shown in
 Figure~\ref{FigTemporalChangeLineageMarkerExp}. We write the output into an extra PDF file,
 \texttt{exemplaryGenes.pdf}.
