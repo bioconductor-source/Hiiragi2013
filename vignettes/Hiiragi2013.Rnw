@@ -48,9 +48,10 @@ BiocStyle::latex(short.fignames=TRUE, use.unsrturl=FALSE)
 
 \begin{document}
 
-\bioctitle[Analysis report: Ohnishi et al., 2013]{{\Large Executable Analysis Document Supporting:}\\
+\bioctitle[Analysis report: Ohnishi et al., 2014]{{\Large Executable Analysis Document Supporting:}\\
   \textbf{Cell-to-cell expression variability followed by signal reinforcement progressively segregates early mouse lineages}\\
-  {\Large Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej K.~Ole\'s, Marcos J.~Ara\'uzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis and Takashi Hiiragi\\\href{http://dx.doi.org/10.1038/ncb2881}{doi:10.1038/ncb2881}}}
+  {\Large Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej K.~Ole\'s, Marcos J.~Ara\'uzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis and Takashi Hiiragi\\
+  Nature Cell Biology 16(1), 27-37 (2014)\\\href{http://dx.doi.org/10.1038/ncb2881}{doi:10.1038/ncb2881}}}
 
 \author{Authors of this document: Andrzej K.~Ole\'s, Wolfgang Huber}
 

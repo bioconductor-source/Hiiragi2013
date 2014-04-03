@@ -75,7 +75,7 @@ Formal class 'AffyBatch' [package "affy"] with 10 slots
   .. .. .. ..$ : int [1:3] 1 3 0
   .. .. .. ..$ : int [1:3] 1 2 0
 }}
-\references{Ohnishi et al., 2013}
+\references{Ohnishi et al., 2014}
 \seealso{\code{\link{x}}, \code{\link{xq}}, \code{\link{xql}}}
 \examples{
 data(a)

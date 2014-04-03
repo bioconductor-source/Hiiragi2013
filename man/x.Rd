@@ -70,7 +70,7 @@ Formal class 'ExpressionSet' [package "Biobase"] with 7 slots
   .. .. .. ..$ : int [1:3] 1 3 0
   .. .. .. ..$ : int [1:3] 1 0 0
 }}
-\references{Ohnishi et al., 2013}
+\references{Ohnishi et al., 2014}
 \seealso{\code{\link{a}}, \code{\link{xq}}, \code{\link{xql}}}
 \examples{
 data(x)
