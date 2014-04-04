@@ -1,3 +1,15 @@
+## imports
+importFrom(Biobase, exprs, fData)
+importFrom(cluster, pam)
+importFrom(genefilter, rowVars, rowttests)
+importFrom(grid, grid.lines, grid.points, grid.rect, grid.segments, grid.text, gpar, popViewport, pushViewport, unit, viewport)
+importFrom(gplots, bluered)
+importFrom(lattice, levelplot)
+importFrom(latticeExtra, dendrogramGrob)
+importFrom(MASS, isoMDS)
+importFrom(RColorBrewer, brewer.pal)
+
+## exports
 export(pamCluster)
 export(plotProjection)
 export(myHeatmap)
