@@ -14,12 +14,15 @@ citEntry(entry="article",
   journal = "Nature Cell Biology",
   volume = "16",
   number = "1",
-  pages = "27-37",
+  pages = "27--37",
   year = "2014",
   doi = "10.1038/ncb2881",
-  url = "http://dx.doi.org/10.1038/ncb2881",
-  textVersion = 
-         paste("Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej K. Oles, Marcos J. Arauzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis, Takashi Hiiragi (2014):",
-                "Cell-to-cell expression variability followed by signal reinforcement progressively segregates early mouse lineages.",
-                "Nature Cell Biology 16(1)", "27-37", "doi:10.1038/ncb2881")
+  textVersion = paste(
+    paste("Yusuke Ohnishi, Wolfgang Huber, Akiko Tsumura, Minjung Kang, Panagiotis Xenopoulos, Kazuki Kurimoto, Andrzej K. Oles, Marcos J. Arauzo-Bravo, Mitinori Saitou, Anna-Katerina Hadjantonakis, Takashi Hiiragi (2014):",
+          "Cell-to-cell expression variability followed by signal reinforcement progressively segregates early mouse lineages.",
+          "Nature Cell Biology"),
+    "16(1)",
+    "pp. 27-37",
+    "doi:10.1038/ncb2881", 
+    sep = ", ")
 )
