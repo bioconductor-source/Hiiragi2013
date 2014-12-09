@@ -10,4 +10,4 @@ LazyLoad: true
 Depends: R (>= 3.0.0), affy, Biobase, boot, clue, cluster, genefilter, geneplotter, gplots, gtools, KEGGREST, MASS, mouse4302.db, RColorBrewer, xtable
 Imports: grid, lattice, latticeExtra
 Suggests: ArrayExpress, BiocStyle
-biocViews: ExperimentData, MicroarrayData
+biocViews: ExperimentData, MicroarrayData, qPCRData
