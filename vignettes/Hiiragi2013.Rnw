@@ -270,7 +270,7 @@ clusterResampling = function(x, ngenes, k = 2, B = 250, prob = 0.67) {
     submat = mat[, selSamps, drop = FALSE]
     selFeats = order(rowVars(submat), decreasing = TRUE)[seq_len(ngenes)]
     submat = submat[selFeats,, drop = FALSE]
-    pamres = pam(t(submat), k = k)
+    pamres = pam(t(submat), k = k, metric = "euclidean")
     pred = cl_predict(pamres, t(mat[selFeats, ]), "memberships")
     as.cl_partition(pred)
   }))
